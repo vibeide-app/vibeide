@@ -13,6 +13,7 @@ export class LayoutManager {
   private focusedLeafId: string | null = null;
   private readonly activeSessionIds = new Set<string>();
   private resizeObserver: ResizeObserver;
+  private activeDragCleanup: (() => void) | null = null;
 
   constructor(
     rootElement: HTMLElement,
@@ -121,6 +122,7 @@ export class LayoutManager {
   }
 
   render(): void {
+    if (!this.rootElement.isConnected) return;
     this.rootElement.replaceChildren();
     if (!this.layout) return;
     const dom = this.renderNode(this.layout);
@@ -195,19 +197,47 @@ export class LayoutManager {
         const isHorizontal = el.classList.contains('horizontal');
         const rect = parent.getBoundingClientRect();
 
+        // Get the two sibling elements (first child, divider, second child)
+        const firstChild = parent.children[0] as HTMLElement;
+        const secondChild = parent.children[2] as HTMLElement;
+        if (!firstChild || !secondChild) return;
+
+        const prop = isHorizontal ? 'width' : 'height';
+
         const onMouseMove = (moveEvent: MouseEvent) => {
           const ratio = isHorizontal
             ? (moveEvent.clientX - rect.left) / rect.width
             : (moveEvent.clientY - rect.top) / rect.height;
 
           const clamped = Math.max(0.1, Math.min(0.9, ratio));
+
+          // Update CSS directly without full re-render
+          firstChild.style[prop] = `calc(${clamped * 100}% - 2px)`;
+          secondChild.style[prop] = `calc(${(1 - clamped) * 100}% - 2px)`;
+
+          this.onFitAll();
+        };
+
+        const onMouseUp = (moveEvent: MouseEvent) => {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+          this.activeDragCleanup = null;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+
+          // Compute final ratio and update layout tree
+          const finalRatio = isHorizontal
+            ? (moveEvent.clientX - rect.left) / rect.width
+            : (moveEvent.clientY - rect.top) / rect.height;
+          const clampedFinal = Math.max(0.1, Math.min(0.9, finalRatio));
+
           if (this.layout) {
-            this.layout = this.updateRatio(this.layout, splitId, clamped);
-            this.render();
+            this.layout = this.updateRatio(this.layout, splitId, clampedFinal);
           }
         };
 
-        const onMouseUp = () => {
+        // Store cleanup for dispose
+        this.activeDragCleanup = () => {
           document.removeEventListener('mousemove', onMouseMove);
           document.removeEventListener('mouseup', onMouseUp);
           document.body.style.cursor = '';
@@ -310,6 +340,18 @@ export class LayoutManager {
     if (!node) return null;
     if (node.type === 'leaf') return node;
     return this.findFirstLeaf(node.children[0]);
+  }
+
+  dispose(): void {
+    this.resizeObserver.disconnect();
+    this.rootElement.replaceChildren();
+    if (this.activeDragCleanup) {
+      this.activeDragCleanup();
+      this.activeDragCleanup = null;
+    }
+    this.layout = null;
+    this.focusedLeafId = null;
+    this.activeSessionIds.clear();
   }
 
   private findLeafInTree(node: LayoutNode, sessionId: string): LeafNode | null {

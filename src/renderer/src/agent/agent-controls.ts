@@ -16,6 +16,7 @@ export class AgentControls {
   private readonly tracked = new Map<string, TrackedAgent>();
   private readonly unsubscribers: Array<() => void> = [];
   private isFirstAgent = true;
+  private spawning = false;
 
   constructor(
     terminalManager: TerminalManager,
@@ -32,6 +33,8 @@ export class AgentControls {
   }
 
   async spawnAgent(type: AgentType, direction?: 'horizontal' | 'vertical'): Promise<void> {
+    if (this.spawning) return;
+    this.spawning = true;
     try {
       const info: AgentInfo = await window.api.agent.spawn({ type });
 
@@ -53,6 +56,8 @@ export class AgentControls {
       }
     } catch (error) {
       console.error('Failed to spawn agent:', error);
+    } finally {
+      this.spawning = false;
     }
   }
 

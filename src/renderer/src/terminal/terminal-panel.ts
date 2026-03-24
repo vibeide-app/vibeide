@@ -7,6 +7,14 @@ import { DEFAULT_SCROLLBACK } from '../../../shared/constants';
 import { getTheme, loadSavedTheme } from './terminal-theme';
 import { TerminalSearch } from './terminal-search';
 
+function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: any[]) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  }) as T;
+}
+
 export class TerminalPanel {
   private readonly terminal: Terminal;
   private readonly fitAddon: FitAddon;
@@ -17,6 +25,7 @@ export class TerminalPanel {
   private unsubscribeData: (() => void) | null = null;
   private connected = false;
   private terminalSearch: TerminalSearch | null = null;
+  private readonly debouncedResize: (sessionId: string, cols: number, rows: number) => void;
 
   constructor(sessionId: string) {
     this._sessionId = sessionId;
@@ -34,6 +43,15 @@ export class TerminalPanel {
 
     this.fitAddon = new FitAddon();
     this.searchAddon = new SearchAddon();
+
+    this.debouncedResize = debounce(
+      (sessionId: string, cols: number, rows: number) => {
+        window.api.pty.resize({ sessionId, cols, rows }).catch(() => {
+          // Resize failed — session may have ended
+        });
+      },
+      50,
+    );
   }
 
   attach(element: HTMLElement): void {
@@ -90,13 +108,7 @@ export class TerminalPanel {
   fit(): void {
     try {
       this.fitAddon.fit();
-      window.api.pty.resize({
-        sessionId: this._sessionId,
-        cols: this.terminal.cols,
-        rows: this.terminal.rows,
-      }).catch(() => {
-        // Resize failed — session may have ended
-      });
+      this.debouncedResize(this._sessionId, this.terminal.cols, this.terminal.rows);
     } catch {
       // Terminal may not be visible yet
     }
