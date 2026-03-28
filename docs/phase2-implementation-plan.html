@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeIDE Phase 2 — Implementation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-surface: #1e293b;
+    --bg-card: #1e293b;
+    --bg-code: #0d1117;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-heading: #f1f5f9;
+    --accent: #3b82f6;
+    --accent-light: #60a5fa;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a78bfa;
+    --border: #334155;
+    --shadow: rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 16px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Header */
+  .hero {
+    text-align: center;
+    padding: 3rem 0 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+  }
+  .hero h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .hero .subtitle {
+    font-size: 1.15rem;
+    color: var(--accent-light);
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+  .hero .meta {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .toc h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    border-bottom: none;
+    display: block;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+  }
+  .toc ol li {
+    counter-increment: toc;
+    margin-bottom: 0.4rem;
+  }
+  .toc ol li::before {
+    content: counter(toc) ".";
+    color: var(--accent);
+    font-weight: 600;
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .toc a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+  }
+  .toc a:hover { color: var(--accent-light); }
+
+  /* Sections */
+  section { margin-bottom: 3rem; }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+  h2::after {
+    content: "";
+    display: block;
+    clear: both;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  h4 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent-light);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  p { margin-bottom: 1rem; }
+  strong { color: var(--text-heading); }
+
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1.25rem;
+    margin: 1rem 0;
+    background: rgba(59,130,246,0.08);
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.9rem;
+  }
+  thead th {
+    background: var(--bg-surface);
+    color: var(--accent-light);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--accent);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  tbody td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: rgba(30,41,59,0.5); }
+  tbody tr:hover { background: rgba(59,130,246,0.08); }
+
+  /* Code blocks */
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #c9d1d9;
+  }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.875em;
+  }
+  :not(pre) > code {
+    background: var(--bg-surface);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    color: var(--accent-light);
+    font-size: 0.85em;
+  }
+
+  /* Callout */
+  .callout {
+    border: 2px solid var(--accent);
+    background: rgba(59,130,246,0.06);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin: 2rem 0;
+  }
+  .callout h3 {
+    color: var(--accent-light);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.15rem;
+  }
+  .callout ol, .callout ul { padding-left: 1.5rem; }
+  .callout li { margin-bottom: 0.5rem; }
+
+  /* Status dots */
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-blue { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .dot-purple { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+
+  /* Phase card */
+  .phase-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+  }
+  .phase-card h3 {
+    margin-top: 0;
+    color: var(--accent-light);
+  }
+
+  /* Spike card */
+  .spike-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+  }
+  .spike-card h4 {
+    color: var(--amber);
+    margin-top: 0;
+  }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+  .checklist li {
+    padding: 0.3rem 0;
+    padding-left: 1.75rem;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--accent);
+    border-radius: 3px;
+  }
+
+  /* Lists */
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.35rem; }
+
+  /* Links */
+  a { color: var(--accent-light); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Divider */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* Risk badge */
+  .risk-high { color: var(--red); font-weight: 600; }
+  .risk-medium { color: var(--amber); font-weight: 600; }
+  .risk-low { color: var(--green); font-weight: 600; }
+  .risk-critical { color: var(--red); font-weight: 700; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>VibeIDE Phase 2</h1>
+    <div class="subtitle">Native Rust GPU-Accelerated AI Agent Terminal Orchestrator</div>
+    <div class="meta">Implementation Plan &mdash; 13&ndash;17 weeks to release &mdash; Updated March 2026</div>
+  </div>
+
+  <!-- Table of Contents -->
+  <nav class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#spikes">Pre-Phase: Spikes and Prototypes</a></li>
+      <li><a href="#dependency-graph">Dependency Graph</a></li>
+      <li><a href="#timeline">Overall Timeline</a></li>
+      <li><a href="#performance">Performance Targets</a></li>
+      <li><a href="#phase-2-1">Phase 2.1: Foundation &mdash; Window, GPU Context, Event Loop</a></li>
+      <li><a href="#phase-2-2">Phase 2.2: Terminal Rendering &mdash; GPU Text and PTY</a></li>
+      <li><a href="#phase-2-3">Phase 2.3: Multi-Terminal &mdash; Splits, Tabs, Layout</a></li>
+      <li><a href="#phase-2-4">Phase 2.4: UI Chrome &mdash; Command Palette, Status Bar, Menus</a></li>
+      <li><a href="#phase-2-5">Phase 2.5: Agent Orchestration &mdash; AI Process Management</a></li>
+      <li><a href="#phase-2-6">Phase 2.6: File Explorer &mdash; GPU-Rendered Tree View</a></li>
+      <li><a href="#phase-2-7">Phase 2.7: Voice Integration &mdash; Push-to-Talk</a></li>
+      <li><a href="#phase-2-8">Phase 2.8: Notifications, Templates, and Polish</a></li>
+      <li><a href="#phase-2-9">Phase 2.9: Cross-Platform and Packaging</a></li>
+      <li><a href="#phase-2-10">Phase 2.10: WASM Plugin System (Stretch)</a></li>
+      <li><a href="#workspace">Cargo Workspace Structure</a></li>
+      <li><a href="#risks">Risk Summary</a></li>
+      <li><a href="#decisions">Key Architectural Decisions</a></li>
+    </ol>
+  </nav>
+
+  <!-- Spikes -->
+  <section id="spikes">
+    <h2>Pre-Phase: Spikes and Prototypes</h2>
+    <p><strong>Week 0 &mdash; 3&ndash;5 days.</strong> Before committing to the full build, validate the three highest-risk technical unknowns with isolated proof-of-concept programs.</p>
+
+    <div class="spike-card">
+      <h4>Spike 1: wgpu + cosmic-text Glyph Atlas</h4>
+      <p><strong>Goal:</strong> Render a 120&times;40 grid of monospaced text at 120fps using wgpu with a glyph atlas built from cosmic-text.</p>
+      <p><strong>What to prove:</strong></p>
+      <ul>
+        <li>cosmic-text can rasterize JetBrains Mono glyphs into a texture atlas</li>
+        <li>A single instanced draw call can render 4,800+ character cells</li>
+        <li>Frame time stays under 8.3ms (120fps) on integrated GPUs</li>
+        <li>Atlas updates (new glyphs, different sizes) don&rsquo;t cause frame drops</li>
+      </ul>
+      <p><strong>Risk:</strong> cosmic-text&rsquo;s glyph rasterization may have quality issues at small sizes, or the atlas-packing strategy may not be efficient enough. <strong>Mitigation:</strong> fall back to <code>fontdue</code> (proven in GPU terminal projects like Rio).</p>
+    </div>
+
+    <div class="spike-card">
+      <h4>Spike 2: alacritty_terminal as Library</h4>
+      <p><strong>Goal:</strong> Use <code>alacritty_terminal</code> crate to parse VT escape sequences and maintain a terminal grid state, without the Alacritty window/renderer.</p>
+      <p><strong>What to prove:</strong></p>
+      <ul>
+        <li><code>alacritty_terminal::Term</code> can be used standalone (detached from Alacritty&rsquo;s event loop)</li>
+        <li>PTY output can be fed through the parser and terminal grid state read back</li>
+        <li>Color attributes, cursor position, and scrollback are accessible</li>
+        <li>The crate compiles cleanly as a dependency (no hidden Alacritty-specific assumptions)</li>
+      </ul>
+      <p><strong>Risk:</strong> Tight coupling to Alacritty internals. <strong>Mitigation:</strong> use <code>vte</code> crate directly for parsing and maintain a custom grid state.</p>
+    </div>
+
+    <div class="spike-card">
+      <h4>Spike 3: whisper-rs Push-to-Talk</h4>
+      <p><strong>Goal:</strong> Capture microphone audio on push-to-talk, transcribe locally with whisper-rs, and output the text.</p>
+      <p><strong>What to prove:</strong></p>
+      <ul>
+        <li>whisper-rs works on Linux (PulseAudio/PipeWire) with acceptable latency</li>
+        <li>The small/base Whisper model provides usable accuracy for English developer commands</li>
+        <li>Transcription completes within 1&ndash;2 seconds of releasing the push-to-talk key</li>
+        <li>Audio capture does not block the main thread (runs on a separate tokio task)</li>
+      </ul>
+      <p><strong>Risk:</strong> Model loading time (~2&ndash;5s) and transcription latency. <strong>Mitigation:</strong> pre-load at startup; use &ldquo;tiny&rdquo; model for speed; support cloud STT fallback.</p>
+    </div>
+
+    <div class="callout">
+      <h3>Spike Results Gate</h3>
+      <ul>
+        <li><strong>All pass:</strong> proceed with the phased plan below.</li>
+        <li><strong>Spike 1 fails:</strong> evaluate <code>fontdue</code> or OpenGL glyph rendering.</li>
+        <li><strong>Spike 2 fails:</strong> plan for custom VT parser using <code>vte</code> crate + custom grid.</li>
+        <li><strong>Spike 3 fails:</strong> defer voice to Phase 2.7+ and ship with cloud-only STT initially.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Dependency Graph -->
+  <section id="dependency-graph">
+    <h2>Dependency Graph</h2>
+    <pre>
+Phase 2.1 (Foundation)
+    |
+    v
+Phase 2.2 (Terminal Rendering) ----+
+    |                               |
+    v                               |
+Phase 2.3 (Multi-Terminal)          |
+    |                               |
+    v                               v
+Phase 2.4 (UI Chrome) &lt;----- Phase 2.5 (Agent Orchestration)
+    |                               |
+    +-------+-----------+-----------+
+            |           |
+            v           v
+     Phase 2.6       Phase 2.7
+   (File Explorer)  (Voice Integration)
+            |           |
+            +-----+-----+
+                  |
+                  v
+            Phase 2.8 (Notifications + Templates + Polish)
+                  |
+                  v
+            Phase 2.9 (Cross-Platform + Packaging)
+                  |
+                  v
+            Phase 2.10 (WASM Plugins &mdash; Stretch)</pre>
+  </section>
+
+  <!-- Timeline -->
+  <section id="timeline">
+    <h2>Overall Timeline</h2>
+    <table>
+      <thead>
+        <tr><th>Phase</th><th>Duration</th><th>Cumulative</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Spikes</td><td>3&ndash;5 days</td><td>Week 1</td></tr>
+        <tr><td>2.1 Foundation</td><td>2 weeks</td><td>Week 3</td></tr>
+        <tr><td>2.2 Terminal Rendering</td><td>3 weeks</td><td>Week 6</td></tr>
+        <tr><td>2.3 Multi-Terminal</td><td>2 weeks</td><td>Week 8</td></tr>
+        <tr><td>2.4 UI Chrome</td><td>3 weeks</td><td>Week 11</td></tr>
+        <tr><td>2.5 Agent Orchestration</td><td>2 weeks (parallel with 2.4)</td><td>Week 10</td></tr>
+        <tr><td>2.6 File Explorer</td><td>2 weeks</td><td>Week 13</td></tr>
+        <tr><td>2.7 Voice Integration</td><td>2 weeks (parallel with 2.6)</td><td>Week 13</td></tr>
+        <tr><td>2.8 Polish</td><td>2 weeks</td><td>Week 15</td></tr>
+        <tr><td>2.9 Cross-Platform</td><td>2 weeks</td><td>Week 17</td></tr>
+        <tr><td>2.10 WASM (stretch)</td><td>2&ndash;3 weeks</td><td>Week 20</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Total: 13&ndash;15 weeks to beta, 17 weeks to cross-platform release.</strong></p>
+  </section>
+
+  <!-- Performance Targets -->
+  <section id="performance">
+    <h2>Performance Targets</h2>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Target</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Frame time (single pane)</td><td>&lt;4ms</td></tr>
+        <tr><td>Frame time (4 panes)</td><td>&lt;8ms</td></tr>
+        <tr><td>Input latency</td><td>&lt;5ms</td></tr>
+        <tr><td>PTY throughput</td><td>&gt;100MB/s</td></tr>
+        <tr><td>Startup time</td><td>&lt;500ms</td></tr>
+        <tr><td>Memory (4 agents)</td><td>&lt;150MB</td></tr>
+        <tr><td>Voice transcription</td><td>&lt;2s</td></tr>
+        <tr><td>File explorer open</td><td>&lt;100ms</td></tr>
+        <tr><td>Project switch</td><td>&lt;50ms</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.1 -->
+  <section id="phase-2-1">
+    <h2>Phase 2.1: Foundation</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">Window, GPU Context, Event Loop &mdash; 2 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Create the application skeleton: a native window powered by winit, a wgpu rendering context, and an async event loop that can process input events and schedule frame redraws at 120fps.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Cargo workspace setup</strong> &mdash; Create a multi-crate workspace with clear boundaries:
+        <ul>
+          <li><code>vibeide-app</code> &mdash; binary crate, owns the event loop and window</li>
+          <li><code>vibeide-gpu</code> &mdash; wgpu device/surface management, render pipeline abstraction</li>
+          <li><code>vibeide-terminal</code> &mdash; terminal emulation and PTY</li>
+          <li><code>vibeide-ui</code> &mdash; UI chrome, layout engine</li>
+          <li><code>vibeide-agent</code> &mdash; agent process management</li>
+          <li><code>vibeide-voice</code> &mdash; audio capture and STT</li>
+          <li><code>vibeide-common</code> &mdash; shared types, config, error types</li>
+        </ul>
+      </li>
+      <li><strong>winit window creation</strong> &mdash; Open a resizable window with title &ldquo;VibeIDE&rdquo;, minimum size 800&times;600, start maximized. Handle DPI scaling from the start.</li>
+      <li><strong>wgpu initialization</strong> &mdash; Request adapter (prefer discrete GPU, fall back to integrated), create device and queue. Create a surface for the window. Configure swap chain for Mailbox present mode with sRGB format.</li>
+      <li><strong>Render loop</strong> &mdash; Implement a frame-driven loop: poll winit events, process input, call render, present. Target 120fps with frame pacing.</li>
+      <li><strong>Clear screen test</strong> &mdash; Render a solid dark background color (#0f172a) to confirm the full pipeline works.</li>
+      <li><strong>Input event scaffolding</strong> &mdash; Wire keyboard and mouse events from winit into an internal event channel. No processing yet, just logging.</li>
+      <li><strong>Configuration system</strong> &mdash; Load app config from <code>~/.vibeide/config.toml</code> using the <code>toml</code> crate. Define config structs for: window size/position, font settings, theme colors, keybindings.</li>
+      <li><strong>Error handling foundation</strong> &mdash; Define <code>VibeError</code> enum using <code>thiserror</code>. Set up <code>tracing</code> with <code>tracing-subscriber</code> for structured logging.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>winit</code> 0.30+</td><td>Window creation, event loop, input events</td></tr>
+        <tr><td><code>wgpu</code> 23+</td><td>GPU abstraction (Vulkan/Metal/DX12)</td></tr>
+        <tr><td><code>tokio</code></td><td>Async runtime for background tasks</td></tr>
+        <tr><td><code>tracing</code> + <code>tracing-subscriber</code></td><td>Structured logging</td></tr>
+        <tr><td><code>toml</code> + <code>serde</code></td><td>Configuration file parsing</td></tr>
+        <tr><td><code>thiserror</code></td><td>Error type derivation</td></tr>
+        <tr><td><code>directories</code></td><td>XDG-compliant config/data paths</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>winit + wgpu compatibility:</strong> winit 0.30 changed the event loop API significantly. Pin to a known-good version pair and test on both Wayland and X11.</li>
+      <li><strong>Wayland vs X11:</strong> Test both display servers on Linux from day one. Verify window decoration behavior on both.</li>
+      <li><strong>DPI scaling edge cases:</strong> High-DPI and mixed-DPI monitors need testing. Store logical vs physical size correctly from the start.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Theme colors and design tokens</strong> &mdash; CSS variables map directly to wgpu clear colors and UI rendering colors.</li>
+      <li><strong>Configuration schema</strong> &mdash; Settings structure (font size, theme, keybindings) can be reused; just change storage format to plain TOML.</li>
+      <li><strong>Keybinding definitions</strong> &mdash; Keybinding map can be ported as-is; only the event source changes.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Config loading with valid/invalid TOML files. Error type formatting. Event channel send/receive.</li>
+      <li><strong>Integration tests:</strong> Window creation succeeds on headless CI. Config file round-trip.</li>
+      <li><strong>Manual verification:</strong> Window opens, shows dark background, responds to resize, logs input events.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li><code>cargo run</code> opens a native window with dark background</li>
+      <li>Window resizes smoothly without flickering</li>
+      <li>Frame time logged, consistently under 2ms for empty frame</li>
+      <li>Input events (keyboard, mouse) logged to terminal</li>
+      <li>Config loaded from <code>~/.vibeide/config.toml</code> or defaults</li>
+      <li><code>tracing</code> output to both file and stderr</li>
+      <li>All crates in workspace compile with zero warnings</li>
+      <li>CI passes with <code>cargo clippy</code> and <code>cargo test</code></li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.2 -->
+  <section id="phase-2-2">
+    <h2>Phase 2.2: Terminal Rendering</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">GPU Text and PTY &mdash; 3 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Render a fully functional terminal in the GPU window: a PTY-connected shell with proper VT100/VT220 escape sequence handling, a GPU-rendered glyph atlas for text, and cursor rendering.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Glyph atlas construction</strong> &mdash; Use <code>cosmic-text</code> to rasterize the configured monospace font (default: JetBrains Mono) into a texture atlas. Pack glyphs into a 2048&times;2048 GPU texture. Record UV coordinates and metrics. Support dynamic atlas growth for CJK and emoji.</li>
+      <li><strong>Cell rendering shader</strong> &mdash; Write a WGSL vertex/fragment shader pair for instanced rendering of terminal cells. Each cell instance: position, glyph UV rect, foreground color, background color, attributes (bold, italic, underline). Single instanced draw call for the entire grid.</li>
+      <li><strong>PTY management</strong> &mdash; Use <code>portable-pty</code> crate to spawn a shell process. Wire stdout/stderr to a reader task, stdin to a writer task. Handle PTY resize (SIGWINCH).</li>
+      <li><strong>VT parser integration</strong> &mdash; Feed PTY output through <code>alacritty_terminal::Term</code> to parse escape sequences and maintain the terminal grid state.</li>
+      <li><strong>Cursor rendering</strong> &mdash; Blinking block/beam/underline cursor (configurable). Blink rate configurable (default: 530ms). Shape changes based on terminal mode.</li>
+      <li><strong>Scrollback buffer</strong> &mdash; 10,000 lines default (configurable). Smooth scrolling with mouse wheel and keyboard (Shift+PageUp/Down).</li>
+      <li><strong>Selection and copy</strong> &mdash; Mouse drag text selection with semi-transparent overlay. Clipboard copy via <code>arboard</code> crate. Word-select (double-click) and line-select (triple-click).</li>
+      <li><strong>Color scheme</strong> &mdash; ANSI 16-color, 256-color, and 24-bit true color support. OSC 4 color queries and changes.</li>
+      <li><strong>Performance optimization</strong> &mdash; Dirty rect tracking for changed cells only. Batch PTY reads. Target &lt;4ms frame time.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>cosmic-text</code></td><td>Font shaping, glyph rasterization</td></tr>
+        <tr><td><code>alacritty_terminal</code></td><td>VT escape sequence parsing, terminal grid state</td></tr>
+        <tr><td><code>portable-pty</code></td><td>Cross-platform PTY management</td></tr>
+        <tr><td><code>arboard</code></td><td>System clipboard access</td></tr>
+        <tr><td><code>unicode-width</code></td><td>Correct width for CJK and wide characters</td></tr>
+        <tr><td><code>bytemuck</code></td><td>Safe transmutation for GPU buffer data</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Glyph atlas overflow:</strong> Emoji and CJK characters can balloon the atlas. Implement atlas paging or LRU eviction.</li>
+      <li><strong>alacritty_terminal API stability:</strong> Not designed as a public library; pin exact version and wrap behind an abstraction trait.</li>
+      <li><strong>PTY read performance:</strong> High-throughput output must not drop frames. Buffer reads and process in batches.</li>
+      <li><strong>Unicode edge cases:</strong> Combining characters, RTL text, and variation selectors need careful handling.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Terminal color theme</strong> &mdash; xterm.js theme configuration maps directly to the new color palette.</li>
+      <li><strong>Terminal settings</strong> &mdash; Font family, font size, cursor style, scrollback size carry over.</li>
+      <li><strong>Selection behavior logic</strong> &mdash; Double-click/triple-click semantics can be reused conceptually.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Glyph atlas packing, color mapping, cell attribute parsing.</li>
+      <li><strong>Integration tests:</strong> Known VT sequences through parser and verify grid state. PTY spawn and I/O. Scrollback correctness.</li>
+      <li><strong>Visual regression tests:</strong> Render known state to image and compare. Use <code>vttest</code> for compliance.</li>
+      <li><strong>Performance tests:</strong> Frame time with full grid. PTY throughput with <code>cat /dev/urandom</code>.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>Full terminal emulator rendering in GPU window</li>
+      <li>Shell prompt appears and accepts input</li>
+      <li>Colors (16, 256, true color) render correctly</li>
+      <li>Cursor blinks and changes shape</li>
+      <li>Scrollback works with mouse wheel and keyboard</li>
+      <li>Text selection and clipboard copy functional</li>
+      <li><code>vttest</code> basic tests pass</li>
+      <li>Frame time &lt;4ms for single terminal pane</li>
+      <li>PTY throughput &gt;100MB/s</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.3 -->
+  <section id="phase-2-3">
+    <h2>Phase 2.3: Multi-Terminal</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">Splits, Tabs, and Layout &mdash; 2 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Support multiple terminal panes in a tiled layout with splits (horizontal/vertical), tabs, and keyboard-driven navigation. Each pane runs an independent PTY session.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Layout tree data structure</strong> &mdash; Tree structure for pane layout: leaf nodes are terminal panes, internal nodes are splits with configurable ratio. Support arbitrary nesting.</li>
+      <li><strong>Split operations</strong> &mdash; Split-horizontal (Ctrl+Shift+H) and split-vertical (Ctrl+Shift+V). New split creates a new PTY session. Close pane (Ctrl+Shift+W) with tree rebalancing.</li>
+      <li><strong>Pane focus and navigation</strong> &mdash; Navigate with Ctrl+Shift+Arrow or Ctrl+Shift+H/J/K/L (vim-style). Accent-colored border on focused pane.</li>
+      <li><strong>Pane resizing</strong> &mdash; Drag divider to resize. Keyboard resize with Ctrl+Shift+Alt+Arrow. Minimum: 20 columns &times; 5 rows. Double-click divider to equalize.</li>
+      <li><strong>Tab support</strong> &mdash; Each workspace is a tab with a layout tree. Ctrl+Shift+T (new tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle). Tab bar rendered at the top.</li>
+      <li><strong>Layout serialization</strong> &mdash; Serialize layout (split ratios, tabs, working directories) to <code>~/.vibeide/layout.json</code> for restore on launch.</li>
+      <li><strong>Viewport and rendering</strong> &mdash; Each pane renders into a scissored viewport. Dividers as 1px lines in theme border color.</li>
+      <li><strong>PTY resize propagation</strong> &mdash; Correct SIGWINCH on pane resize so the shell reflows correctly.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>serde_json</code></td><td>Layout serialization</td></tr>
+        <tr><td>(no new crates)</td><td>Layout logic is custom</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Layout tree complexity:</strong> Deeply nested splits can create tiny panes. Enforce minimum size constraints at the tree level.</li>
+      <li><strong>PTY resize timing:</strong> Debounce resize events (16ms) to avoid shell reflow thrashing.</li>
+      <li><strong>Rendering performance:</strong> With 6+ panes, verify frame time stays under 8ms.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Split logic and keybindings</strong> &mdash; Tree data structure logic is similar but needs Rust reimplementation.</li>
+      <li><strong>Tab management state</strong> &mdash; Tab ordering, active tab tracking, and naming carry over conceptually.</li>
+      <li><strong>Layout persistence</strong> &mdash; Save/restore approach from Phase 1 can be adapted.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Layout tree operations, minimum size enforcement, serialization round-trip, focus traversal.</li>
+      <li><strong>Integration tests:</strong> Multiple independent PTYs. Resize propagation correctness.</li>
+      <li><strong>Manual testing:</strong> Rapid split/resize/close. Verify no orphaned PTY processes.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>Horizontal and vertical splits working</li>
+      <li>Keyboard navigation between panes (arrow and vim-style)</li>
+      <li>Pane resize by dragging divider</li>
+      <li>Tab bar with create/close/switch</li>
+      <li>Each pane has an independent shell session</li>
+      <li>Layout persists across app restarts</li>
+      <li>No orphaned PTY processes after closing panes</li>
+      <li>Frame time &lt;8ms with 4 panes</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.4 -->
+  <section id="phase-2-4">
+    <h2>Phase 2.4: UI Chrome</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">Command Palette, Status Bar, Menus &mdash; 3 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Build the non-terminal UI elements: a command palette for quick actions, a status bar for system information, and modal dialogs. All rendered natively with the GPU &mdash; no HTML, no webview.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Immediate-mode UI primitives</strong> &mdash; GPU-rendered rectangles, text labels, text input fields, scrollable lists, buttons. Shared glyph atlas with terminal rendering.</li>
+      <li><strong>Command palette</strong> &mdash; Fuzzy-search palette (Ctrl+Shift+P). Text input, filtered command list, keyboard navigation, skim fuzzy matching, action dispatch. 100ms slide-down animation.</li>
+      <li><strong>Status bar</strong> &mdash; Bottom bar. Left: CWD, git branch, active agent status. Right: CPU/memory usage, terminal dimensions, notification count.</li>
+      <li><strong>Quick Terminal selector</strong> &mdash; Dropdown (Ctrl+Shift+J) listing all open terminal sessions with CWD, recent command, agent assignment.</li>
+      <li><strong>Settings UI</strong> &mdash; Modal panel for editing settings with live preview. Saves to <code>~/.vibeide/config.toml</code>.</li>
+      <li><strong>Keyboard shortcut overlay</strong> &mdash; Help overlay (Ctrl+?) with all keybindings grouped by category. Searchable.</li>
+      <li><strong>Theme engine</strong> &mdash; Load theme from config. Built-in themes (dark, light, high-contrast). Instant switching.</li>
+      <li><strong>Modal system</strong> &mdash; Generic modal dialogs for confirmations, input prompts, and errors with semi-transparent overlay.</li>
+      <li><strong>Animations</strong> &mdash; Smooth transitions for palette open/close, focus change, tab switch. All under 150ms.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>fuzzy-matcher</code> or <code>nucleo</code></td><td>Fuzzy string matching for command palette</td></tr>
+        <tr><td><code>sysinfo</code></td><td>CPU/memory stats for status bar</td></tr>
+        <tr><td><code>git2</code></td><td>Git branch detection (libgit2 bindings)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>UI rendering performance:</strong> Batch all UI into a single render pass with terminal content.</li>
+      <li><strong>Focus management:</strong> Implement a focus stack for modal capture and return.</li>
+      <li><strong>Text input:</strong> Implementing cursor movement, selection, copy/paste, IME from scratch is non-trivial. Start with basic ASCII.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Command palette command list</strong> &mdash; Command definitions (name, description, shortcut, action) port directly.</li>
+      <li><strong>Status bar data sources</strong> &mdash; Git branch, terminal dimensions, CWD tracking carry over.</li>
+      <li><strong>Keybinding definitions</strong> &mdash; Full keybinding map reusable.</li>
+      <li><strong>Theme color values</strong> &mdash; All CSS theme colors carry over to GPU theme engine.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Fuzzy matching ranking. Theme color parsing. Command registration and lookup.</li>
+      <li><strong>Integration tests:</strong> Palette filters correctly. Status bar updates on CWD change. Settings round-trip.</li>
+      <li><strong>Visual tests:</strong> Render UI elements to image, compare against references.</li>
+      <li><strong>Accessibility audit:</strong> Keyboard-only navigation for all UI elements.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>Command palette opens with Ctrl+Shift+P, fuzzy-filters commands</li>
+      <li>Status bar shows CWD, git branch, agent status, resource usage</li>
+      <li>Quick terminal selector lists all sessions</li>
+      <li>Settings panel allows live-preview changes</li>
+      <li>Keybinding overlay shows all shortcuts</li>
+      <li>Theme switching works instantly</li>
+      <li>Modal dialogs render correctly with focus capture</li>
+      <li>All UI elements keyboard-navigable</li>
+      <li>UI rendering adds &lt;1ms to frame time</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.5 -->
+  <section id="phase-2-5">
+    <h2>Phase 2.5: Agent Orchestration</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">AI Process Management &mdash; 2 weeks (parallel with 2.4)</p>
+
+    <h3>Goal</h3>
+    <p>Manage AI agent processes (Claude Code CLI, Codex CLI, or any MCP-compatible agent) as first-class terminal sessions. Spawn agents in dedicated PTY sessions, track their lifecycle, and provide agent-aware UI.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Agent process abstraction</strong> &mdash; Define an <code>Agent</code> trait: <code>spawn(config) -&gt; AgentHandle</code>, <code>send_input(text)</code>, <code>read_output() -&gt; Stream&lt;String&gt;</code>, <code>terminate()</code>, <code>status() -&gt; AgentStatus</code>. Implement for Claude Code CLI and Codex CLI.</li>
+      <li><strong>Agent session management</strong> &mdash; <code>AgentManager</code> tracks all running agents. Each agent in its own PTY. Start, stop, restart. Concurrent limit (default: 4).</li>
+      <li><strong>Agent configuration</strong> &mdash; Config per agent: name, command, env vars, working directory, auto-restart policy. Stored in <code>~/.vibeide/agents.toml</code>. Project-local support via <code>.vibeide/agents.toml</code>.</li>
+      <li><strong>Agent-aware pane decoration</strong> &mdash; Colored border per agent type, agent name in tab title, status indicator (running/thinking/idle/error) in status bar.</li>
+      <li><strong>Agent input routing</strong> &mdash; Keyboard input to agent PTY stdin. Interrupt (Ctrl+C), kill (force-terminate), and restart commands.</li>
+      <li><strong>Agent output processing</strong> &mdash; Parse output for thinking indicators, tool use, code blocks, errors. Tag output sections with metadata.</li>
+      <li><strong>Agent health monitoring</strong> &mdash; Detect unexpected exit. Auto-restart if configured. Notification on crash. Log all lifecycle events.</li>
+      <li><strong>Multi-agent coordination</strong> &mdash; Multiple simultaneous agents in separate panes with independent contexts. No inter-agent communication in this phase.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>tokio::process</code></td><td>Agent process spawning and management</td></tr>
+        <tr><td><code>notify</code></td><td>File system watching for agent config changes</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Agent process lifecycle:</strong> Agents may hang, crash, or produce unexpected output. Implement robust timeouts and health checks.</li>
+      <li><strong>PTY interaction with agents:</strong> Some agents use interactive terminal features (spinners, progress bars). Terminal emulator must handle correctly.</li>
+      <li><strong>Resource management:</strong> Monitor per-agent resource usage and warn when approaching limits.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Agent spawn logic</strong> &mdash; Process spawning and I/O routing from Phase 1&rsquo;s agent manager.</li>
+      <li><strong>Agent configuration schema</strong> &mdash; Agent definition format carries over.</li>
+      <li><strong>Agent status tracking</strong> &mdash; Lifecycle state machine can be reused.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> AgentManager lifecycle, config parsing, status state machine transitions.</li>
+      <li><strong>Integration tests:</strong> Mock agent (echo script) I/O routing. Crash and auto-restart. Concurrent limit enforcement.</li>
+      <li><strong>E2E tests:</strong> Real Claude Code instance (if API key available), simple prompt and response verification.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>Agents can be spawned in dedicated terminal panes</li>
+      <li>Agent panes have visual indicators (border color, status)</li>
+      <li>Agent lifecycle (start/stop/restart) works reliably</li>
+      <li>Unexpected exit triggers notification and optional auto-restart</li>
+      <li>Multiple agents can run simultaneously</li>
+      <li>Agent config loaded from TOML files</li>
+      <li>Memory usage stays under 150MB with 4 agents running</li>
+      <li>All agent lifecycle events logged</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.6 -->
+  <section id="phase-2-6">
+    <h2>Phase 2.6: File Explorer</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">GPU-Rendered Tree View &mdash; 2 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Build a file explorer sidebar that shows the project directory tree, supports navigation, and integrates with the terminal. Entirely GPU-rendered.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Directory scanning</strong> &mdash; Use <code>walkdir</code> for directory traversal. Respect <code>.gitignore</code> via <code>ignore</code> crate. Lazy-load subdirectories on expand.</li>
+      <li><strong>Tree view rendering</strong> &mdash; Indented list with expand/collapse arrows. File-type icons (icon atlas or Unicode). Keyboard navigation.</li>
+      <li><strong>File explorer sidebar</strong> &mdash; Resizable left panel. Toggle with Ctrl+B. Draggable edge. Width persists across sessions.</li>
+      <li><strong>File operations</strong> &mdash; Context menu: New File, New Folder, Rename, Delete, Copy Path, Open in Terminal. Confirmation dialogs for destructive actions.</li>
+      <li><strong>Search/filter</strong> &mdash; Quick-filter by typing. Highlight matching files/folders. Reset with Escape.</li>
+      <li><strong>File watching</strong> &mdash; <code>notify</code> crate for FS event watching. Auto-update tree on changes. Debounce updates.</li>
+      <li><strong>Integration with terminal</strong> &mdash; Double-click directory to <code>cd</code> in focused pane. File path shown in status bar. Drag to paste path.</li>
+      <li><strong>Git status integration</strong> &mdash; Modified (M, amber), added (A, green), deleted (D, red), untracked (?, gray) indicators via <code>git2</code>.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>walkdir</code></td><td>Recursive directory traversal</td></tr>
+        <tr><td><code>ignore</code></td><td>.gitignore-aware file filtering</td></tr>
+        <tr><td><code>notify</code></td><td>File system event watching</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Large project performance:</strong> 100k+ files need virtual scrolling and lazy loading of collapsed directories.</li>
+      <li><strong>File watcher reliability:</strong> inotify watch limit on Linux. Fall back to periodic polling for very large projects.</li>
+      <li><strong>Cross-platform paths:</strong> Use <code>std::path::Path</code> consistently. Handle symlinks.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>File tree logic</strong> &mdash; Tree construction and traversal. Rendering is entirely different (GPU vs React).</li>
+      <li><strong>Git status integration</strong> &mdash; Status fetching and per-file assignment carries over.</li>
+      <li><strong>File operation commands</strong> &mdash; Operations and confirmation dialogs reused conceptually.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Tree construction, .gitignore filtering, git status mapping, search/filter matching.</li>
+      <li><strong>Integration tests:</strong> Real directory scan. File watcher detects changes. File operations correctness.</li>
+      <li><strong>Performance tests:</strong> Large project (Linux kernel, ~70k files) opens in &lt;100ms.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>File explorer sidebar renders project directory tree</li>
+      <li>Expand/collapse directories with click or keyboard</li>
+      <li>Quick-filter narrows the tree by filename</li>
+      <li>File operations (new, rename, delete) work with confirmations</li>
+      <li>Git status indicators on modified/added/deleted files</li>
+      <li>File watcher updates tree on external changes</li>
+      <li>Double-click directory changes terminal CWD</li>
+      <li>Opens in &lt;100ms for projects up to 100k files</li>
+      <li>Sidebar width persists across sessions</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.7 -->
+  <section id="phase-2-7">
+    <h2>Phase 2.7: Voice Integration</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">Push-to-Talk and Transcription &mdash; 2 weeks (parallel with 2.6)</p>
+
+    <h3>Goal</h3>
+    <p>Add voice input capability: push-to-talk to capture audio, local transcription using Whisper, and input of the transcribed text into the focused terminal or agent pane.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Audio capture</strong> &mdash; <code>cpal</code> crate for cross-platform audio input at 16kHz mono. Dedicated capture thread.</li>
+      <li><strong>Push-to-talk activation</strong> &mdash; Configurable key (default: Right Alt or F13). Visual indicator (microphone icon, pulsing accent color) while recording.</li>
+      <li><strong>Local transcription with whisper-rs</strong> &mdash; Load model at startup in background. Transcribe on separate tokio task. Configurable model size (tiny/base/small/medium).</li>
+      <li><strong>Cloud STT fallback</strong> &mdash; OpenAI Whisper API, Deepgram support. Configured with API key in settings. Used when local model disabled or unavailable.</li>
+      <li><strong>Transcription output</strong> &mdash; Inject text into focused pane&rsquo;s PTY stdin. Optional preview overlay for editing before injection. Voice command mapping (&ldquo;run tests&rdquo; &rarr; actual commands).</li>
+      <li><strong>Voice activity detection</strong> &mdash; Energy-based VAD to trim silence. Avoid sending empty audio to transcriber.</li>
+      <li><strong>Audio feedback</strong> &mdash; Subtle sound or visual flash on recording start/stop. Configurable: sounds on, sounds off, visual only.</li>
+      <li><strong>Privacy controls</strong> &mdash; All voice data processed locally by default. No cloud unless explicitly configured. Config option to disable voice entirely. No audio stored after transcription.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>whisper-rs</code></td><td>Local Whisper model inference</td></tr>
+        <tr><td><code>cpal</code></td><td>Cross-platform audio capture</td></tr>
+        <tr><td><code>hound</code></td><td>WAV encoding for Whisper input</td></tr>
+        <tr><td><code>reqwest</code></td><td>HTTP client for cloud STT APIs</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Whisper model size and load time:</strong> Base model ~140MB. Pre-load asynchronously at startup with first-run download experience.</li>
+      <li><strong>Transcription accuracy:</strong> Developer jargon poorly transcribed. Use custom vocabulary/prompt.</li>
+      <li><strong>Audio permission on Linux:</strong> PipeWire/PulseAudio permission may be needed. Helpful error messages.</li>
+      <li><strong>Latency budget:</strong> Capture + transcription must complete in &lt;2s. Tiny model is faster but less accurate.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Entirely new.</strong> Phase 1 did not include voice. However, PTY input injection mechanism reuses Phase 2.2/2.3 infrastructure.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Audio buffer VAD trimming. WAV encoding format. Cloud API request construction. Voice command mapping.</li>
+      <li><strong>Integration tests:</strong> Mock audio capture, pre-recorded WAV to Whisper, verify transcription. Cloud STT with mock HTTP server.</li>
+      <li><strong>Manual testing:</strong> Developer commands (&ldquo;list all files&rdquo;, &ldquo;run cargo test&rdquo;), verify accuracy and latency.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>Push-to-talk captures audio and transcribes with Whisper</li>
+      <li>Visual indicator shows when recording</li>
+      <li>Transcribed text injected into focused terminal pane</li>
+      <li>Cloud STT fallback configurable</li>
+      <li>Transcription completes in &lt;2 seconds</li>
+      <li>Voice can be fully disabled in settings</li>
+      <li>No audio data stored or sent to cloud by default</li>
+      <li>Works with PulseAudio and PipeWire on Linux</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.8 -->
+  <section id="phase-2-8">
+    <h2>Phase 2.8: Notifications, Templates, and Polish</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">2 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Add a notification system for agent events, project templates for quick starts, and polish the entire application for beta quality.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>Notification system</strong> &mdash; In-app toast notifications for agent completed, agent error, build finished, file changed. Stack in top-right. Auto-dismiss after 5s. Click to navigate. History panel.</li>
+      <li><strong>Project templates</strong> &mdash; Quick-start templates: Rust CLI, Rust web (Axum), TypeScript/Node, Python. Template defines initial files, agent config, recommended extensions. Accessible from command palette.</li>
+      <li><strong>Session management</strong> &mdash; Save and restore complete sessions: tabs, layouts, CWDs, running agents. Auto-save on exit. Named sessions for project switching.</li>
+      <li><strong>Startup experience</strong> &mdash; First-run wizard: shell selection, font config, theme, optional voice setup. Subsequent launches restore last session.</li>
+      <li><strong>Error recovery</strong> &mdash; GPU device lost (recreate), PTY crash (error + restart offer), config corruption (reset with warning), agent timeout (configurable, force-kill).</li>
+      <li><strong>Performance audit</strong> &mdash; Profile with <code>perf</code> and <code>tracy</code>. Fix regressions. Verify all performance targets. Optimize memory.</li>
+      <li><strong>Keyboard shortcut consistency</strong> &mdash; Audit all keybindings for conflicts. Ensure every action is keyboard-accessible. Document all shortcuts.</li>
+      <li><strong>Visual polish</strong> &mdash; Consistent spacing and alignment. Smooth animations. Loading states. Empty states.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>handlebars</code> or <code>tera</code></td><td>Template rendering for project templates</td></tr>
+        <tr><td><code>chrono</code></td><td>Timestamps for notifications</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Notification overload:</strong> Rate-limit per agent (max 1 per 5s for non-critical).</li>
+      <li><strong>Session restore complexity:</strong> Re-spawning agents may fail if environment changed. Handle gracefully.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Notification structure</strong> &mdash; Notification types and display logic adaptable.</li>
+      <li><strong>Project template definitions</strong> &mdash; Template file structures carry over directly.</li>
+      <li><strong>Session save/restore schema</strong> &mdash; Session data model reusable with minor adjustments.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Notification rate limiting. Template file generation. Session serialization round-trip.</li>
+      <li><strong>Integration tests:</strong> Full session save/restore cycle. Template creates correct structure. Notification dismissal and history.</li>
+      <li><strong>E2E tests:</strong> Launch, create from template, run agent, verify notification on completion.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>Notification toasts appear for agent events</li>
+      <li>At least 4 project templates available</li>
+      <li>Session save/restore works reliably</li>
+      <li>First-run wizard guides new users</li>
+      <li>All error modes handled gracefully with user-friendly messages</li>
+      <li>All performance targets met</li>
+      <li>No keyboard shortcut conflicts</li>
+      <li>Visual consistency audit passes</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.9 -->
+  <section id="phase-2-9">
+    <h2>Phase 2.9: Cross-Platform and Packaging</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">2 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Ensure VibeIDE runs well on macOS and Windows in addition to Linux. Package for distribution on all three platforms.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>macOS support</strong> &mdash; Metal backend, Retina display scaling, Cmd keybindings, menu bar integration, .app bundle, Gatekeeper signing.</li>
+      <li><strong>Windows support</strong> &mdash; DX12/Vulkan backend, ConPTY for terminal emulation, Windows keybindings, high-DPI scaling, installer generation.</li>
+      <li><strong>Platform abstraction</strong> &mdash; All platform-specific code behind trait abstractions. PTY layer abstracts Unix PTY vs Windows ConPTY.</li>
+      <li><strong>Packaging pipeline</strong> &mdash; CI/CD with GitHub Actions matrix builds. AppImage + deb + rpm (Linux), DMG (macOS), MSI (Windows). Auto-publish from tags.</li>
+      <li><strong>Auto-update</strong> &mdash; Startup version check from GitHub releases API. Notification if update available. One-click update.</li>
+      <li><strong>Platform-specific testing</strong> &mdash; Full test suite on all platforms in CI. Platform-specific tests for PTY, keyboard, rendering.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>cargo-bundle</code> or <code>cargo-packager</code></td><td>Application packaging</td></tr>
+        <tr><td><code>self_update</code></td><td>Auto-update from GitHub releases</td></tr>
+        <tr><td><code>conpty</code> (Windows)</td><td>Windows ConPTY bindings</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>Windows ConPTY differences:</strong> Subtle behavioral differences from Unix PTY. Extensive testing needed.</li>
+      <li><strong>macOS Gatekeeper:</strong> Unsigned apps blocked. Need Apple Developer account or bypass instructions.</li>
+      <li><strong>CI build times:</strong> Three-platform builds are slow. Cache aggressively. Consider cross-compilation.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>CI/CD pipeline structure</strong> &mdash; GitHub Actions workflow from Tauri packaging can be adapted.</li>
+      <li><strong>Release versioning</strong> &mdash; Version numbering and changelog format carry over.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Platform matrix tests:</strong> Full suite on Linux (Ubuntu 22.04+), macOS (13+), Windows (10+). GPU rendering verification.</li>
+      <li><strong>Packaging tests:</strong> Build packages, install on clean VMs, verify launch and basic functionality.</li>
+      <li><strong>Update tests:</strong> Mock server for update check simulation. End-to-end update flow.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>VibeIDE runs on Linux, macOS, and Windows</li>
+      <li>Platform-specific keyboard shortcuts work correctly</li>
+      <li>Packaging produces installable artifacts for all platforms</li>
+      <li>CI builds and tests on all three platforms</li>
+      <li>Auto-update check and notification works</li>
+      <li>No platform-specific crashes or rendering issues</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Phase 2.10 -->
+  <section id="phase-2-10">
+    <h2>Phase 2.10: WASM Plugin System</h2>
+    <p class="subtitle" style="color: var(--accent-light); font-weight: 500; margin-bottom: 1.5rem;">Stretch Goal &mdash; 2&ndash;3 weeks</p>
+
+    <h3>Goal</h3>
+    <p>Enable extensibility through a WASM-based plugin system. Plugins run in a sandboxed WASM runtime and can extend VibeIDE with custom commands, UI panels, themes, and agent integrations.</p>
+
+    <h3>Key Tasks</h3>
+    <ol>
+      <li><strong>WASM runtime integration</strong> &mdash; Embed <code>wasmtime</code> as the plugin runtime. Each plugin in its own sandboxed instance with limited host access.</li>
+      <li><strong>Plugin API definition</strong> &mdash; Stable plugin API via wit-bindgen: register commands, add status bar items, create UI panels, listen to events. Version the API.</li>
+      <li><strong>Plugin manifest</strong> &mdash; <code>plugin.toml</code> manifest: name, version, author, permissions (filesystem, network, terminal). User must approve permissions on install.</li>
+      <li><strong>Plugin marketplace</strong> &mdash; Built-in browser from command palette. GitHub-based registry. Install, update, uninstall.</li>
+      <li><strong>Built-in plugins</strong> &mdash; First-party examples: theme switcher, git integration panel, markdown preview. Serve as developer examples.</li>
+      <li><strong>Plugin development kit</strong> &mdash; <code>vibeide-plugin-sdk</code> crate with template project, documentation, and hot-reload development workflow.</li>
+    </ol>
+
+    <h3>Crates / Dependencies</h3>
+    <table>
+      <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>wasmtime</code></td><td>WASM runtime for plugin execution</td></tr>
+        <tr><td><code>wit-bindgen</code></td><td>Plugin API interface generation</td></tr>
+        <tr><td><code>reqwest</code></td><td>Plugin registry HTTP client</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Risk Areas</h3>
+    <ul>
+      <li><strong>WASM sandbox escapes:</strong> Security-critical. Audit host-side API carefully. Minimal surface area.</li>
+      <li><strong>Plugin API stability:</strong> Must be stable for external developers. Version from the start.</li>
+      <li><strong>Performance overhead:</strong> WASM call overhead. Profile to ensure no frame-time impact.</li>
+    </ul>
+
+    <h3>What Can Be Ported from Phase 1</h3>
+    <ul>
+      <li><strong>Plugin concept and marketplace UX</strong> &mdash; Designs carry over if Phase 1 had plugin planning. Implementation is entirely new with WASM.</li>
+    </ul>
+
+    <h3>Testing Strategy</h3>
+    <ul>
+      <li><strong>Unit tests:</strong> Plugin manifest parsing. Permission checking. API versioning.</li>
+      <li><strong>Integration tests:</strong> Load test WASM plugin, verify command registration and execution. Sandbox enforcement.</li>
+      <li><strong>Security tests:</strong> Attempt sandbox escapes from malicious plugin. Verify all host calls are authorized.</li>
+    </ul>
+
+    <h3>Definition of Done</h3>
+    <ul class="checklist">
+      <li>WASM plugins load and execute in a sandboxed runtime</li>
+      <li>Plugin API supports: commands, status bar items, event listeners</li>
+      <li>Plugin permissions enforced (user must approve)</li>
+      <li>At least 3 built-in plugins demonstrating the system</li>
+      <li>Plugin SDK crate published with documentation</li>
+      <li>Plugin hot-reload works for development</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- Cargo Workspace Structure -->
+  <section id="workspace">
+    <h2>Cargo Workspace Structure</h2>
+    <pre>
+vibeide/
+├── Cargo.toml                    # Workspace root
+├── crates/
+│   ├── vibeide-app/              # Binary: event loop, window, orchestration
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── main.rs
+│   │       ├── app.rs            # Application state and lifecycle
+│   │       ├── event_loop.rs     # winit event loop integration
+│   │       ├── input.rs          # Input event processing
+│   │       └── config.rs         # Configuration loading
+│   │
+│   ├── vibeide-gpu/              # GPU rendering abstraction
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── context.rs        # wgpu device, queue, surface
+│   │       ├── atlas.rs          # Glyph atlas management
+│   │       ├── pipeline.rs       # Render pipeline setup
+│   │       ├── shaders/          # WGSL shader files
+│   │       │   ├── cell.wgsl     # Terminal cell rendering
+│   │       │   └── ui.wgsl       # UI element rendering
+│   │       └── renderer.rs       # Frame rendering orchestration
+│   │
+│   ├── vibeide-terminal/         # Terminal emulation
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── pty.rs            # PTY management
+│   │       ├── grid.rs           # Terminal grid state
+│   │       ├── parser.rs         # VT sequence parsing
+│   │       ├── selection.rs      # Text selection
+│   │       └── scrollback.rs     # Scrollback buffer
+│   │
+│   ├── vibeide-ui/               # UI chrome
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── layout.rs         # Pane layout tree
+│   │       ├── tabs.rs           # Tab management
+│   │       ├── palette.rs        # Command palette
+│   │       ├── statusbar.rs      # Status bar
+│   │       ├── explorer.rs       # File explorer
+│   │       ├── modal.rs          # Modal dialog system
+│   │       ├── notifications.rs  # Notification toasts
+│   │       └── theme.rs          # Theme engine
+│   │
+│   ├── vibeide-agent/            # Agent orchestration
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── manager.rs        # Agent lifecycle management
+│   │       ├── process.rs        # Agent process abstraction
+│   │       ├── config.rs         # Agent configuration
+│   │       └── health.rs         # Health monitoring
+│   │
+│   ├── vibeide-voice/            # Voice integration
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── capture.rs        # Audio capture
+│   │       ├── whisper.rs        # Local Whisper transcription
+│   │       ├── cloud.rs          # Cloud STT backends
+│   │       └── vad.rs            # Voice activity detection
+│   │
+│   └── vibeide-common/           # Shared types
+│       ├── Cargo.toml
+│       └── src/
+│           ├── lib.rs
+│           ├── error.rs          # VibeError enum
+│           ├── theme.rs          # Theme types and defaults
+│           ├── keys.rs           # Keybinding types
+│           └── event.rs          # Internal event types
+│
+├── tests/                        # Integration and E2E tests
+│   ├── terminal_tests.rs
+│   ├── agent_tests.rs
+│   └── layout_tests.rs
+│
+├── assets/                       # Fonts, icons, default themes
+│   ├── fonts/
+│   ├── icons/
+│   └── themes/
+│
+└── docs/                         # Documentation
+    ├── architecture.md
+    └── plugin-api.md</pre>
+  </section>
+
+  <hr>
+
+  <!-- Risk Summary -->
+  <section id="risks">
+    <h2>Risk Summary</h2>
+    <table>
+      <thead>
+        <tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>cosmic-text quality at small sizes</td>
+          <td><span class="risk-high">High</span></td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td>Spike 1; fallback to fontdue</td>
+        </tr>
+        <tr>
+          <td>alacritty_terminal API instability</td>
+          <td><span class="risk-high">High</span></td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td>Spike 2; wrap behind abstraction trait</td>
+        </tr>
+        <tr>
+          <td>Whisper latency too high</td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td>Spike 3; cloud STT fallback</td>
+        </tr>
+        <tr>
+          <td>wgpu compatibility across GPUs</td>
+          <td><span class="risk-high">High</span></td>
+          <td><span class="risk-low">Low</span></td>
+          <td>Test on integrated GPUs; software renderer fallback</td>
+        </tr>
+        <tr>
+          <td>Windows ConPTY differences</td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td><span class="risk-high">High</span></td>
+          <td>Extensive platform-specific testing</td>
+        </tr>
+        <tr>
+          <td>Large project file explorer perf</td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td>Virtual scrolling; lazy loading</td>
+        </tr>
+        <tr>
+          <td>WASM plugin sandbox escapes</td>
+          <td><span class="risk-critical">Critical</span></td>
+          <td><span class="risk-low">Low</span></td>
+          <td>Security audit; minimal host API surface</td>
+        </tr>
+        <tr>
+          <td>Context window pressure in agents</td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td><span class="risk-medium">Medium</span></td>
+          <td>Efficient prompt management; token tracking</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr>
+
+  <!-- Key Architectural Decisions -->
+  <section id="decisions">
+    <h2>Key Architectural Decisions</h2>
+
+    <div class="phase-card">
+      <h3>1. No Webview</h3>
+      <p>All rendering is native GPU via wgpu. This eliminates the Chromium memory overhead (~200&ndash;400MB) and gives full control over the render pipeline.</p>
+    </div>
+
+    <div class="phase-card">
+      <h3>2. alacritty_terminal for VT Parsing</h3>
+      <p>Rather than writing a VT parser from scratch, we leverage the battle-tested parser from Alacritty. This saves months of work on escape sequence edge cases.</p>
+    </div>
+
+    <div class="phase-card">
+      <h3>3. Cargo Workspace with Small Crates</h3>
+      <p>Each subsystem (GPU, terminal, UI, agent, voice) is a separate crate with clear API boundaries. This enforces separation of concerns and enables parallel compilation.</p>
+    </div>
+
+    <div class="phase-card">
+      <h3>4. Immediate-Mode UI for Chrome</h3>
+      <p>UI elements (command palette, status bar, modals) use immediate-mode rendering into the same GPU pipeline. No retained-mode widget tree &mdash; keeps the rendering architecture simple and fast.</p>
+    </div>
+
+    <div class="phase-card">
+      <h3>5. WASM for Plugins</h3>
+      <p>Plugins run in a sandboxed WASM runtime, not native code. This provides security guarantees and cross-platform compatibility at the cost of some performance overhead (acceptable for plugin-level operations).</p>
+    </div>
+
+    <div class="phase-card">
+      <h3>6. Local-First Voice</h3>
+      <p>Voice transcription runs locally with Whisper by default. Cloud STT is opt-in. No audio leaves the device unless the user explicitly configures cloud transcription.</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -52,30 +52,37 @@ describe('Terminal Theme', () => {
   describe('getTheme', () => {
     it('returns tokyoNight theme for "tokyoNight"', () => {
       const theme = getTheme('tokyoNight');
-      expect(theme).toBe(themes.tokyoNight);
       expect(theme.terminal.background).toBe('#1a1b26');
+      expect(theme.chrome['--bg']).toBe('#1a1b26');
     });
 
     it('returns tokyoNightLight theme for "tokyoNightLight"', () => {
       const theme = getTheme('tokyoNightLight');
-      expect(theme).toBe(themes.tokyoNightLight);
       expect(theme.terminal.background).toBe('#d5d6db');
+      expect(theme.chrome['--bg']).toBe('#d5d6db');
     });
 
     it('returns solarizedDark theme for "solarizedDark"', () => {
       const theme = getTheme('solarizedDark');
-      expect(theme).toBe(themes.solarizedDark);
       expect(theme.terminal.background).toBe('#002b36');
     });
 
     it('returns default (tokyoNight) for unknown name', () => {
       const theme = getTheme('nonExistentTheme');
-      expect(theme).toBe(themes.tokyoNight);
+      expect(theme.terminal.background).toBe('#1a1b26');
     });
 
     it('returns default for empty string', () => {
       const theme = getTheme('');
-      expect(theme).toBe(themes.tokyoNight);
+      expect(theme.terminal.background).toBe('#1a1b26');
+    });
+
+    it('enriches chrome with derived tokens', () => {
+      const theme = getTheme('tokyoNight');
+      expect(theme.chrome['--surface-raised']).toBeDefined();
+      expect(theme.chrome['--accent-dim']).toBeDefined();
+      expect(theme.chrome['--accent-hover']).toBeDefined();
+      expect(theme.chrome['--border-subtle']).toBeDefined();
     });
   });
 
@@ -87,9 +94,13 @@ describe('Terminal Theme', () => {
       expect(names).toContain('solarizedDark');
     });
 
-    it('returns exactly 3 themes', () => {
+    it('returns all registered themes', () => {
       const names = getThemeNames();
-      expect(names).toHaveLength(3);
+      expect(names).toHaveLength(9);
+      expect(names).toContain('tokyoNight');
+      expect(names).toContain('dracula');
+      expect(names).toContain('nord');
+      expect(names).toContain('catppuccinMocha');
     });
 
     it('returns an array of strings', () => {
@@ -164,13 +175,13 @@ describe('Terminal Theme', () => {
       }
     });
 
-    it('all color values are valid hex strings', () => {
-      const hexRegex = /^#[0-9a-f]{6}$/i;
+    it('all color values are valid hex or rgba strings', () => {
+      const colorRegex = /^(#[0-9a-f]{6}|rgba\(\d+,\s*\d+,\s*\d+,\s*[\d.]+\))$/i;
       const names = getThemeNames();
       for (const name of names) {
         const theme = getTheme(name);
         for (const value of Object.values(theme.chrome)) {
-          expect(value).toMatch(hexRegex);
+          expect(value).toMatch(colorRegex);
         }
       }
     });

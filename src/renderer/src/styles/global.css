@@ -1,3 +1,9 @@
+@font-face {
+  font-family: 'Inter';
+  src: local('Inter');
+  font-display: swap;
+}
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -5,14 +11,19 @@
 }
 
 :root {
+  /* Colors — defaults are Tokyo Night */
   --bg: #1a1b26;
   --bg-deep: #16161e;
   --fg: #c0caf5;
-  --fg-dim: #565f89;
+  --fg-dim: #737aa2;
   --fg-faint: #414868;
   --border: #2a2b3d;
+  --border-subtle: rgba(42, 43, 61, 0.5);
   --accent: #7aa2f7;
+  --accent-dim: rgba(122, 162, 247, 0.15);
+  --accent-hover: #89b0fa;
   --surface: #1a1b26;
+  --surface-raised: #1e1f2e;
   --surface-hover: #2a2b3d;
   --error: #f7768e;
   --success: #9ece6a;
@@ -20,6 +31,33 @@
   --scrollbar-track: #1a1b26;
   --scrollbar-thumb: #414868;
   --scrollbar-thumb-hover: #565f89;
+
+  /* Typography scale */
+  --font-xs: 10px;
+  --font-sm: 11px;
+  --font-base: 13px;
+  --font-md: 14px;
+  --font-lg: 16px;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+
+  --tracking-wide: 0.08em;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-smooth: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html, body {
@@ -27,14 +65,29 @@ html, body {
   overflow: hidden;
   background: var(--bg);
   color: var(--fg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--font-base);
+  line-height: var(--leading-normal);
 }
 
 #app {
   display: flex;
   height: 100vh;
   width: 100vw;
+  flex-direction: column;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.workspace-host {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
 }
 
 .terminal-area {
@@ -44,6 +97,68 @@ html, body {
   position: relative;
 }
 
+/* Custom title bar */
+.app-titlebar {
+  height: 36px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.app-titlebar-title {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: var(--fg-dim);
+  letter-spacing: 0.02em;
+}
+
+.app-titlebar-controls {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+
+.app-titlebar-btn {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  opacity: 0.8;
+}
+
+.app-titlebar-btn:hover { opacity: 1; }
+
+.app-titlebar-btn.close { background: #f7768e; }
+.app-titlebar-btn.minimize { background: #e0af68; }
+.app-titlebar-btn.maximize { background: #9ece6a; }
+
+/* Focus visible — keyboard accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -59,4 +174,73 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/* Overlay animations */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Empty workspace state */
+.workspace-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: var(--space-3);
+  color: var(--fg-dim);
+  font-size: var(--font-md);
+}
+
+.workspace-empty-state kbd {
+  padding: 2px 8px;
+  background: var(--surface-hover);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--font-sm);
+  color: var(--fg);
+}
+
+/* Hint bar at bottom of workspace */
+.workspace-hint-bar {
+  height: 24px;
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  gap: var(--space-4);
+  font-size: var(--font-sm);
+  color: var(--fg-faint);
+  flex-shrink: 0;
+}
+
+.workspace-hint-bar kbd {
+  padding: 0 4px;
+  background: var(--surface-hover);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--font-xs);
+  color: var(--fg-dim);
+  margin-right: 2px;
+}
+
+.hint-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }

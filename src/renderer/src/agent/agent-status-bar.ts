@@ -54,7 +54,13 @@ export class AgentStatusBar {
 
   updateStatus(status: AgentStatus): void {
     this.dotEl.className = `status-dot status-${status}`;
-    this.statusTextEl.textContent = status;
+    this.statusTextEl.textContent = status === 'needs-input' ? 'NEEDS INPUT' : status;
+
+    if (status === 'needs-input') {
+      this.element.classList.add('needs-input');
+    } else {
+      this.element.classList.remove('needs-input');
+    }
 
     if (status === 'stopped' || status === 'error') {
       this.stopUptimeCounter();

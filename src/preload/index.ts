@@ -38,6 +38,45 @@ contextBridge.exposeInMainWorld('api', {
       };
     },
   },
+  project: {
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_LIST),
+    create: (request: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_CREATE, request),
+    remove: (projectId: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_REMOVE, projectId),
+    update: (request: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_UPDATE, request),
+    pickDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_PICK_DIR),
+    loadState: (projectId: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_STATE_LOAD, projectId),
+    saveState: (state: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_STATE_SAVE, state),
+  },
+  window: {
+    minimize: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MINIMIZE),
+    maximize: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MAXIMIZE),
+    close: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE),
+    zoomIn: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_ZOOM_IN),
+    zoomOut: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_ZOOM_OUT),
+    zoomReset: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_ZOOM_RESET),
+  },
+  settings: {
+    load: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_LOAD),
+    save: (settings: unknown) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings),
+  },
+  keybindings: {
+    load: () => ipcRenderer.invoke(IPC_CHANNELS.KEYBINDINGS_LOAD),
+    save: (overrides: unknown) => ipcRenderer.invoke(IPC_CHANNELS.KEYBINDINGS_SAVE, overrides),
+  },
+  voice: {
+    transcribe: (request: { provider: string; apiKey: string; audioBase64: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VOICE_TRANSCRIBE, request),
+  },
+  file: {
+    listDir: (dirPath: string) => ipcRenderer.invoke(IPC_CHANNELS.FILE_LIST_DIR, dirPath),
+    read: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.FILE_READ, filePath),
+  },
+  notify: {
+    show: (request: { title: string; body: string; urgency?: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.NOTIFY, request),
+    setEnabled: (enabled: boolean) =>
+      ipcRenderer.invoke(IPC_CHANNELS.NOTIFY_SET_ENABLED, enabled),
+  },
   session: {
     list: (agentId?: string) => ipcRenderer.invoke(IPC_CHANNELS.SESSION_LIST, agentId),
   },

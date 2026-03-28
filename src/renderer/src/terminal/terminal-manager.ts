@@ -3,6 +3,12 @@ import { TerminalPanel } from './terminal-panel';
 export class TerminalManager {
   private readonly panels = new Map<string, TerminalPanel>();
 
+  private terminalFontSize = 14;
+
+  setDefaultFontSize(size: number): void {
+    this.terminalFontSize = size;
+  }
+
   createTerminal(sessionId: string, container: HTMLElement): TerminalPanel {
     // If terminal already exists for this session, re-attach it to the new container
     const existing = this.panels.get(sessionId);
@@ -11,7 +17,7 @@ export class TerminalManager {
       return existing;
     }
 
-    const panel = new TerminalPanel(sessionId);
+    const panel = new TerminalPanel(sessionId, this.terminalFontSize);
     panel.attach(container);
     panel.connect();
     this.panels.set(sessionId, panel);
@@ -40,6 +46,12 @@ export class TerminalManager {
   fitAll(): void {
     for (const panel of this.panels.values()) {
       panel.fit();
+    }
+  }
+
+  setFontSizeAll(size: number): void {
+    for (const panel of this.panels.values()) {
+      panel.setFontSize(size);
     }
   }
 

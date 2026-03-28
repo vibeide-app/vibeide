@@ -139,14 +139,320 @@ const solarizedDark: AppTheme = {
   },
 };
 
+const dracula: AppTheme = {
+  terminal: {
+    background: '#282a36',
+    foreground: '#f8f8f2',
+    cursor: '#f8f8f2',
+    cursorAccent: '#282a36',
+    selectionBackground: '#44475a',
+    selectionForeground: '#f8f8f2',
+    black: '#21222c',
+    red: '#ff5555',
+    green: '#50fa7b',
+    yellow: '#f1fa8c',
+    blue: '#bd93f9',
+    magenta: '#ff79c6',
+    cyan: '#8be9fd',
+    white: '#f8f8f2',
+    brightBlack: '#6272a4',
+    brightRed: '#ff6e6e',
+    brightGreen: '#69ff94',
+    brightYellow: '#ffffa5',
+    brightBlue: '#d6acff',
+    brightMagenta: '#ff92df',
+    brightCyan: '#a4ffff',
+    brightWhite: '#ffffff',
+  },
+  chrome: {
+    '--bg': '#282a36',
+    '--bg-deep': '#21222c',
+    '--fg': '#f8f8f2',
+    '--fg-dim': '#6272a4',
+    '--fg-faint': '#44475a',
+    '--border': '#44475a',
+    '--accent': '#bd93f9',
+    '--surface': '#282a36',
+    '--surface-hover': '#44475a',
+    '--error': '#ff5555',
+    '--success': '#50fa7b',
+    '--warning': '#f1fa8c',
+    '--scrollbar-track': '#282a36',
+    '--scrollbar-thumb': '#44475a',
+    '--scrollbar-thumb-hover': '#6272a4',
+  },
+};
+
+const nord: AppTheme = {
+  terminal: {
+    background: '#2e3440',
+    foreground: '#d8dee9',
+    cursor: '#d8dee9',
+    cursorAccent: '#2e3440',
+    selectionBackground: '#434c5e',
+    selectionForeground: '#d8dee9',
+    black: '#3b4252',
+    red: '#bf616a',
+    green: '#a3be8c',
+    yellow: '#ebcb8b',
+    blue: '#81a1c1',
+    magenta: '#b48ead',
+    cyan: '#88c0d0',
+    white: '#e5e9f0',
+    brightBlack: '#4c566a',
+    brightRed: '#bf616a',
+    brightGreen: '#a3be8c',
+    brightYellow: '#ebcb8b',
+    brightBlue: '#81a1c1',
+    brightMagenta: '#b48ead',
+    brightCyan: '#8fbcbb',
+    brightWhite: '#eceff4',
+  },
+  chrome: {
+    '--bg': '#2e3440',
+    '--bg-deep': '#272c36',
+    '--fg': '#d8dee9',
+    '--fg-dim': '#7b88a1',
+    '--fg-faint': '#4c566a',
+    '--border': '#3b4252',
+    '--accent': '#81a1c1',
+    '--surface': '#2e3440',
+    '--surface-hover': '#3b4252',
+    '--error': '#bf616a',
+    '--success': '#a3be8c',
+    '--warning': '#ebcb8b',
+    '--scrollbar-track': '#2e3440',
+    '--scrollbar-thumb': '#3b4252',
+    '--scrollbar-thumb-hover': '#4c566a',
+  },
+};
+
+const gruvboxDark: AppTheme = {
+  terminal: {
+    background: '#282828',
+    foreground: '#ebdbb2',
+    cursor: '#ebdbb2',
+    cursorAccent: '#282828',
+    selectionBackground: '#504945',
+    selectionForeground: '#ebdbb2',
+    black: '#282828',
+    red: '#cc241d',
+    green: '#98971a',
+    yellow: '#d79921',
+    blue: '#458588',
+    magenta: '#b16286',
+    cyan: '#689d6a',
+    white: '#a89984',
+    brightBlack: '#928374',
+    brightRed: '#fb4934',
+    brightGreen: '#b8bb26',
+    brightYellow: '#fabd2f',
+    brightBlue: '#83a598',
+    brightMagenta: '#d3869b',
+    brightCyan: '#8ec07c',
+    brightWhite: '#ebdbb2',
+  },
+  chrome: {
+    '--bg': '#282828',
+    '--bg-deep': '#1d2021',
+    '--fg': '#ebdbb2',
+    '--fg-dim': '#928374',
+    '--fg-faint': '#504945',
+    '--border': '#3c3836',
+    '--accent': '#83a598',
+    '--surface': '#282828',
+    '--surface-hover': '#3c3836',
+    '--error': '#fb4934',
+    '--success': '#b8bb26',
+    '--warning': '#fabd2f',
+    '--scrollbar-track': '#282828',
+    '--scrollbar-thumb': '#3c3836',
+    '--scrollbar-thumb-hover': '#504945',
+  },
+};
+
+const oneDark: AppTheme = {
+  terminal: {
+    background: '#282c34',
+    foreground: '#abb2bf',
+    cursor: '#528bff',
+    cursorAccent: '#282c34',
+    selectionBackground: '#3e4451',
+    selectionForeground: '#abb2bf',
+    black: '#282c34',
+    red: '#e06c75',
+    green: '#98c379',
+    yellow: '#e5c07b',
+    blue: '#61afef',
+    magenta: '#c678dd',
+    cyan: '#56b6c2',
+    white: '#abb2bf',
+    brightBlack: '#5c6370',
+    brightRed: '#e06c75',
+    brightGreen: '#98c379',
+    brightYellow: '#e5c07b',
+    brightBlue: '#61afef',
+    brightMagenta: '#c678dd',
+    brightCyan: '#56b6c2',
+    brightWhite: '#ffffff',
+  },
+  chrome: {
+    '--bg': '#282c34',
+    '--bg-deep': '#21252b',
+    '--fg': '#abb2bf',
+    '--fg-dim': '#5c6370',
+    '--fg-faint': '#3e4451',
+    '--border': '#3e4451',
+    '--accent': '#61afef',
+    '--surface': '#282c34',
+    '--surface-hover': '#3e4451',
+    '--error': '#e06c75',
+    '--success': '#98c379',
+    '--warning': '#e5c07b',
+    '--scrollbar-track': '#282c34',
+    '--scrollbar-thumb': '#3e4451',
+    '--scrollbar-thumb-hover': '#5c6370',
+  },
+};
+
+const catppuccinMocha: AppTheme = {
+  terminal: {
+    background: '#1e1e2e',
+    foreground: '#cdd6f4',
+    cursor: '#f5e0dc',
+    cursorAccent: '#1e1e2e',
+    selectionBackground: '#45475a',
+    selectionForeground: '#cdd6f4',
+    black: '#45475a',
+    red: '#f38ba8',
+    green: '#a6e3a1',
+    yellow: '#f9e2af',
+    blue: '#89b4fa',
+    magenta: '#f5c2e7',
+    cyan: '#94e2d5',
+    white: '#bac2de',
+    brightBlack: '#585b70',
+    brightRed: '#f38ba8',
+    brightGreen: '#a6e3a1',
+    brightYellow: '#f9e2af',
+    brightBlue: '#89b4fa',
+    brightMagenta: '#f5c2e7',
+    brightCyan: '#94e2d5',
+    brightWhite: '#a6adc8',
+  },
+  chrome: {
+    '--bg': '#1e1e2e',
+    '--bg-deep': '#181825',
+    '--fg': '#cdd6f4',
+    '--fg-dim': '#6c7086',
+    '--fg-faint': '#45475a',
+    '--border': '#313244',
+    '--accent': '#89b4fa',
+    '--surface': '#1e1e2e',
+    '--surface-hover': '#313244',
+    '--error': '#f38ba8',
+    '--success': '#a6e3a1',
+    '--warning': '#f9e2af',
+    '--scrollbar-track': '#1e1e2e',
+    '--scrollbar-thumb': '#313244',
+    '--scrollbar-thumb-hover': '#45475a',
+  },
+};
+
+const monokai: AppTheme = {
+  terminal: {
+    background: '#272822',
+    foreground: '#f8f8f2',
+    cursor: '#f8f8f0',
+    cursorAccent: '#272822',
+    selectionBackground: '#49483e',
+    selectionForeground: '#f8f8f2',
+    black: '#272822',
+    red: '#f92672',
+    green: '#a6e22e',
+    yellow: '#f4bf75',
+    blue: '#66d9ef',
+    magenta: '#ae81ff',
+    cyan: '#a1efe4',
+    white: '#f8f8f2',
+    brightBlack: '#75715e',
+    brightRed: '#f92672',
+    brightGreen: '#a6e22e',
+    brightYellow: '#f4bf75',
+    brightBlue: '#66d9ef',
+    brightMagenta: '#ae81ff',
+    brightCyan: '#a1efe4',
+    brightWhite: '#f9f8f5',
+  },
+  chrome: {
+    '--bg': '#272822',
+    '--bg-deep': '#1e1f1c',
+    '--fg': '#f8f8f2',
+    '--fg-dim': '#75715e',
+    '--fg-faint': '#49483e',
+    '--border': '#3e3d32',
+    '--accent': '#66d9ef',
+    '--surface': '#272822',
+    '--surface-hover': '#3e3d32',
+    '--error': '#f92672',
+    '--success': '#a6e22e',
+    '--warning': '#f4bf75',
+    '--scrollbar-track': '#272822',
+    '--scrollbar-thumb': '#49483e',
+    '--scrollbar-thumb-hover': '#75715e',
+  },
+};
+
 export const themes: Readonly<Record<string, AppTheme>> = {
   tokyoNight,
   tokyoNightLight,
   solarizedDark,
+  dracula,
+  nord,
+  gruvboxDark,
+  oneDark,
+  catppuccinMocha,
+  monokai,
 };
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const match = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!match) return null;
+  return { r: parseInt(match[1], 16), g: parseInt(match[2], 16), b: parseInt(match[3], 16) };
+}
+
+function lighten(hex: string, amount: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const r = Math.min(255, rgb.r + amount);
+  const g = Math.min(255, rgb.g + amount);
+  const b = Math.min(255, rgb.b + amount);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function enrichChrome(chrome: Readonly<Record<string, string>>): Readonly<Record<string, string>> {
+  return {
+    ...chrome,
+    '--fg-dim': chrome['--fg-dim'] ? lighten(chrome['--fg-dim'], 20) : chrome['--fg-dim'],
+    '--surface-raised': chrome['--surface-raised'] ?? lighten(chrome['--bg'] ?? '#1a1b26', 6),
+    '--accent-dim': chrome['--accent-dim'] ?? withAlpha(chrome['--accent'] ?? '#7aa2f7', 0.15),
+    '--accent-hover': chrome['--accent-hover'] ?? lighten(chrome['--accent'] ?? '#7aa2f7', 15),
+    '--border-subtle': chrome['--border-subtle'] ?? withAlpha(chrome['--border'] ?? '#2a2b3d', 0.5),
+  };
+}
+
 export function getTheme(name: string): AppTheme {
-  return themes[name] ?? tokyoNight;
+  const theme = themes[name] ?? tokyoNight;
+  return {
+    terminal: theme.terminal,
+    chrome: enrichChrome(theme.chrome),
+  };
 }
 
 export function getThemeNames(): readonly string[] {

@@ -186,44 +186,53 @@ describe('validateAgentSpawnRequest', () => {
   });
 
   it('accepts valid agent type "claude"', () => {
-    const result = validateAgentSpawnRequest({ type: 'claude' });
-    expect(result).toEqual({ type: 'claude' });
+    const result = validateAgentSpawnRequest({ type: 'claude', projectId: VALID_UUID });
+    expect(result).toEqual({ type: 'claude', projectId: VALID_UUID });
   });
 
   it('accepts valid agent type "gemini"', () => {
-    const result = validateAgentSpawnRequest({ type: 'gemini' });
-    expect(result).toEqual({ type: 'gemini' });
+    const result = validateAgentSpawnRequest({ type: 'gemini', projectId: VALID_UUID });
+    expect(result).toEqual({ type: 'gemini', projectId: VALID_UUID });
   });
 
   it('accepts valid agent type "codex"', () => {
-    const result = validateAgentSpawnRequest({ type: 'codex' });
-    expect(result).toEqual({ type: 'codex' });
+    const result = validateAgentSpawnRequest({ type: 'codex', projectId: VALID_UUID });
+    expect(result).toEqual({ type: 'codex', projectId: VALID_UUID });
   });
 
   it('accepts valid agent type "shell"', () => {
-    const result = validateAgentSpawnRequest({ type: 'shell' });
-    expect(result).toEqual({ type: 'shell' });
+    const result = validateAgentSpawnRequest({ type: 'shell', projectId: VALID_UUID });
+    expect(result).toEqual({ type: 'shell', projectId: VALID_UUID });
   });
 
   it('rejects "custom" agent type', () => {
-    expect(() => validateAgentSpawnRequest({ type: 'custom' })).toThrow('Invalid agent type');
+    expect(() => validateAgentSpawnRequest({ type: 'custom', projectId: VALID_UUID })).toThrow('Invalid agent type');
   });
 
   it('rejects unknown agent type', () => {
-    expect(() => validateAgentSpawnRequest({ type: 'unknown' })).toThrow('Invalid agent type');
+    expect(() => validateAgentSpawnRequest({ type: 'unknown', projectId: VALID_UUID })).toThrow('Invalid agent type');
   });
 
   it('rejects missing type', () => {
-    expect(() => validateAgentSpawnRequest({})).toThrow('Invalid agent type');
+    expect(() => validateAgentSpawnRequest({ projectId: VALID_UUID })).toThrow('Invalid agent type');
   });
 
   it('rejects null', () => {
     expect(() => validateAgentSpawnRequest(null)).toThrow('Invalid request');
   });
 
+  it('rejects missing projectId', () => {
+    expect(() => validateAgentSpawnRequest({ type: 'claude' })).toThrow('Invalid projectId');
+  });
+
+  it('rejects invalid projectId', () => {
+    expect(() => validateAgentSpawnRequest({ type: 'claude', projectId: 'not-a-uuid' })).toThrow('Invalid projectId');
+  });
+
   it('accepts cwd within home directory', () => {
     const result = validateAgentSpawnRequest({
       type: 'claude',
+      projectId: VALID_UUID,
       cwd: '/tmp/vibeide-test-home/projects',
     });
     expect(result.cwd).toBe('/tmp/vibeide-test-home/projects');
@@ -232,6 +241,7 @@ describe('validateAgentSpawnRequest', () => {
   it('accepts cwd equal to home directory', () => {
     const result = validateAgentSpawnRequest({
       type: 'claude',
+      projectId: VALID_UUID,
       cwd: '/tmp/vibeide-test-home',
     });
     expect(result.cwd).toBe('/tmp/vibeide-test-home');
@@ -239,7 +249,7 @@ describe('validateAgentSpawnRequest', () => {
 
   it('rejects cwd outside home directory', () => {
     expect(() =>
-      validateAgentSpawnRequest({ type: 'claude', cwd: '/etc/passwd' }),
+      validateAgentSpawnRequest({ type: 'claude', projectId: VALID_UUID, cwd: '/etc/passwd' }),
     ).toThrow('cwd must be within home directory');
   });
 
@@ -247,6 +257,7 @@ describe('validateAgentSpawnRequest', () => {
     expect(() =>
       validateAgentSpawnRequest({
         type: 'claude',
+        projectId: VALID_UUID,
         cwd: '/tmp/vibeide-test-home/../../etc',
       }),
     ).toThrow('cwd must be within home directory');
@@ -254,24 +265,24 @@ describe('validateAgentSpawnRequest', () => {
 
   it('truncates label to 100 characters', () => {
     const longLabel = 'a'.repeat(150);
-    const result = validateAgentSpawnRequest({ type: 'claude', label: longLabel });
+    const result = validateAgentSpawnRequest({ type: 'claude', projectId: VALID_UUID, label: longLabel });
     expect(result.label).toBe('a'.repeat(100));
   });
 
   it('accepts short label as-is', () => {
-    const result = validateAgentSpawnRequest({ type: 'claude', label: 'my-agent' });
+    const result = validateAgentSpawnRequest({ type: 'claude', projectId: VALID_UUID, label: 'my-agent' });
     expect(result.label).toBe('my-agent');
   });
 
   it('rejects non-string label', () => {
     expect(() =>
-      validateAgentSpawnRequest({ type: 'claude', label: 42 }),
+      validateAgentSpawnRequest({ type: 'claude', projectId: VALID_UUID, label: 42 }),
     ).toThrow('Invalid label');
   });
 
   it('rejects non-string cwd', () => {
     expect(() =>
-      validateAgentSpawnRequest({ type: 'claude', cwd: 42 }),
+      validateAgentSpawnRequest({ type: 'claude', projectId: VALID_UUID, cwd: 42 }),
     ).toThrow('Invalid cwd');
   });
 });

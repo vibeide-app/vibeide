@@ -6,9 +6,31 @@ directories:
 files:
   - out/**/*
   - "!**/*.map"
+extraMetadata:
+  main: ./out/main/index.js
+icon: resources/icons/512x512.png
 linux:
   target:
     - AppImage
     - deb
   category: Development
-  icon: resources/icon.png
+  icon: resources/icons/512x512.png
+  synopsis: AI agent terminal orchestrator for vibe coders
+  description: >
+    VibeIDE is a project-centric terminal orchestrator for developers who use
+    AI agents. Manage multiple projects, spawn terminals and AI agents,
+    switch between workspaces, and monitor agent status — all from one app.
+  desktop:
+    StartupWMClass: vibeide
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+appImage:
+  artifactName: VibeIDE-${version}-${arch}.AppImage

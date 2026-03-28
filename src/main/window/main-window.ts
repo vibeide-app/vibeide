@@ -33,6 +33,8 @@ export function createMainWindow(savedBounds?: SavedWindowBounds): BrowserWindow
     minWidth: 800,
     minHeight: 600,
     backgroundColor: '#1a1b26',
+    frame: false,
+    titleBarStyle: 'hidden',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -54,11 +56,28 @@ export function createMainWindow(savedBounds?: SavedWindowBounds): BrowserWindow
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
+  // Disable Chromium's built-in zoom shortcuts — we handle zoom via IPC
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.control && input.type === 'keyDown') {
+      if (input.shift && (input.key === '+' || input.key === '=' || input.key === '_' || input.key === '-')) {
+        event.preventDefault();
+      }
+    }
+  });
+
   // Prevent navigation away from the app origin
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
     const parsed = new URL(navigationUrl);
     if (parsed.protocol !== 'file:' && !['localhost', '127.0.0.1'].includes(parsed.hostname)) {
       event.preventDefault();
+    }
+  });
+
+  // Forward renderer console messages to main process stdout
+  mainWindow.webContents.on('console-message', (_event, level, message) => {
+    if (message.includes('[Voice') || message.includes('Transcription') || message.includes('Groq') || message.includes('error') || message.includes('[Keybind') || message.includes('Unmatched')) {
+      const prefix = ['LOG', 'WARN', 'ERR'][level] ?? 'LOG';
+      console.log(`[Renderer:${prefix}] ${message}`);
     }
   });
 

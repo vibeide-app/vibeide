@@ -1,5 +1,5 @@
 export type AgentType = 'claude' | 'gemini' | 'codex' | 'shell' | 'custom';
-export type AgentStatus = 'starting' | 'running' | 'stopped' | 'error';
+export type AgentStatus = 'starting' | 'running' | 'needs-input' | 'stopped' | 'error';
 
 export const SPAWNABLE_AGENT_TYPES = new Set<AgentType>(['claude', 'gemini', 'codex', 'shell']);
 
@@ -14,6 +14,7 @@ export interface AgentConfig {
 
 export interface AgentInfo {
   readonly id: string;
+  readonly projectId: string;
   readonly config: AgentConfig;
   readonly status: AgentStatus;
   readonly sessionId: string;

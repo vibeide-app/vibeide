@@ -27,14 +27,14 @@ export class TerminalPanel {
   private terminalSearch: TerminalSearch | null = null;
   private readonly debouncedResize: (sessionId: string, cols: number, rows: number) => void;
 
-  constructor(sessionId: string) {
+  constructor(sessionId: string, fontSize: number = 14) {
     this._sessionId = sessionId;
 
     const savedTheme = loadSavedTheme();
 
     this.terminal = new Terminal({
       fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', Menlo, monospace",
-      fontSize: 14,
+      fontSize,
       scrollback: DEFAULT_SCROLLBACK,
       cursorBlink: true,
       cursorStyle: 'block',
@@ -141,6 +141,15 @@ export class TerminalPanel {
   setTheme(name: string): void {
     const theme = getTheme(name);
     this.terminal.options.theme = theme.terminal;
+  }
+
+  setFontSize(size: number): void {
+    this.terminal.options.fontSize = size;
+    this.fit();
+  }
+
+  getFontSize(): number {
+    return this.terminal.options.fontSize ?? 14;
   }
 
   getContainer(): HTMLElement | null {

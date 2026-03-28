@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bodyGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#c0caf5"/>
+      <stop offset="100%" stop-color="#7a85a8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="80" fill="#1a1b26"/>
+
+  <!-- Upper-left wing -->
+  <ellipse cx="206" cy="185" rx="72" ry="28"
+    transform="rotate(-35 206 185)"
+    fill="#c0caf5" opacity="0.7"/>
+
+  <!-- Upper-right wing -->
+  <ellipse cx="306" cy="185" rx="72" ry="28"
+    transform="rotate(35 306 185)"
+    fill="#c0caf5" opacity="0.7"/>
+
+  <!-- Lower-left wing -->
+  <ellipse cx="212" cy="235" rx="62" ry="24"
+    transform="rotate(-25 212 235)"
+    fill="#c0caf5" opacity="0.45"/>
+
+  <!-- Lower-right wing -->
+  <ellipse cx="300" cy="235" rx="62" ry="24"
+    transform="rotate(25 300 235)"
+    fill="#c0caf5" opacity="0.45"/>
+
+  <!-- Body -->
+  <path d="
+    M 256 160
+    C 264 170, 266 200, 266 220
+    C 266 260, 264 320, 260 370
+    C 259 380, 253 380, 252 370
+    C 248 320, 246 260, 246 220
+    C 246 200, 248 170, 256 160
+    Z"
+    fill="url(#bodyGrad)" opacity="0.9"/>
+
+  <!-- Head -->
+  <circle cx="256" cy="155" r="14" fill="#c0caf5" opacity="0.95"/>
+
+  <!-- Wing overlap highlight -->
+  <circle cx="256" cy="210" r="8" fill="#ffffff" opacity="0.1"/>
+</svg>

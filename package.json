@@ -1,7 +1,12 @@
 {
   "name": "vibeide",
   "version": "0.1.0",
-  "description": "GPU-accelerated AI agent terminal orchestrator",
+  "description": "AI agent terminal orchestrator for vibe coders",
+  "author": {
+    "name": "VibeIDE",
+    "email": "hello@vibeide.dev"
+  },
+  "homepage": "https://github.com/vibeide/vibeide",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -13,26 +18,28 @@
     "format": "prettier --write \"src/**/*.{ts,css,html}\"",
     "postinstall": "electron-builder install-app-deps",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
-    "@xterm/xterm": "^6.0.0",
-    "@xterm/addon-webgl": "^0.19.0",
     "@xterm/addon-fit": "^0.11.0",
-    "@xterm/addon-serialize": "^0.14.0",
     "@xterm/addon-search": "^0.16.0",
+    "@xterm/addon-serialize": "^0.14.0",
     "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/addon-webgl": "^0.19.0",
+    "@xterm/xterm": "^6.0.0",
     "node-pty": "^1.1.0"
   },
   "devDependencies": {
-    "electron": "^33.2.1",
-    "electron-vite": "^2.3.0",
-    "electron-builder": "^25.1.8",
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
-    "typescript": "^5.7.0",
-    "vitest": "^2.1.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
     "eslint": "^9.0.0",
-    "prettier": "^3.4.0"
+    "prettier": "^3.4.0",
+    "sharp": "^0.34.5",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
   }
 }

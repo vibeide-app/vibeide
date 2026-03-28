@@ -32,11 +32,11 @@ export class AgentControls {
     this.isFirstAgent = false;
   }
 
-  async spawnAgent(type: AgentType, direction?: 'horizontal' | 'vertical'): Promise<void> {
+  async spawnAgent(type: AgentType, direction?: 'horizontal' | 'vertical', projectId?: string): Promise<void> {
     if (this.spawning) return;
     this.spawning = true;
     try {
-      const info: AgentInfo = await window.api.agent.spawn({ type });
+      const info: AgentInfo = await window.api.agent.spawn({ type, projectId: projectId ?? '' });
 
       const statusBar = new AgentStatusBar(info, () => {
         this.killAgent(info.id);

@@ -25,6 +25,8 @@ const VALID_UUID_3 = '770e8400-e29b-41d4-a716-446655440002';
 function makeValidState(overrides?: Partial<AppState>): AppState {
   return {
     window: { x: 100, y: 100, width: 800, height: 600, isMaximized: false },
+    activeProjectId: null,
+    sidebarCollapsed: false,
     layout: null,
     agents: [],
     ...overrides,
@@ -257,7 +259,7 @@ describe('StateManager', () => {
         layout: {
           type: 'split',
           id: VALID_UUID_3,
-          direction: 'diagonal',
+          direction: 'diagonal' as 'horizontal',
           children: [makeLeaf(VALID_UUID), makeLeaf(VALID_UUID_2)],
           ratio: 0.5,
         },
@@ -298,7 +300,7 @@ describe('StateManager', () => {
           type: 'split',
           id: VALID_UUID_3,
           direction: 'horizontal',
-          children: [makeLeaf(VALID_UUID)],
+          children: [makeLeaf(VALID_UUID)] as unknown as readonly [LayoutNode, LayoutNode],
           ratio: 0.5,
         },
       });
@@ -328,14 +330,14 @@ describe('StateManager', () => {
 
     it('rejects invalid agent type', () => {
       const state = makeValidState({
-        agents: [{ type: 'invalid', cwd: '/home/user' }],
+        agents: [{ type: 'invalid' as 'claude', cwd: '/home/user' }],
       });
       expect(manager.validateAndParse(state)).toBeNull();
     });
 
     it('rejects agent missing cwd', () => {
       const state = makeValidState({
-        agents: [{ type: 'claude' }],
+        agents: [{ type: 'claude' } as unknown as { type: 'claude'; cwd: string }],
       });
       expect(manager.validateAndParse(state)).toBeNull();
     });
@@ -349,7 +351,7 @@ describe('StateManager', () => {
 
     it('rejects agent with non-string label', () => {
       const state = makeValidState({
-        agents: [{ type: 'claude', cwd: '/home/user', label: 42 }],
+        agents: [{ type: 'claude', cwd: '/home/user', label: 42 as unknown as string }],
       });
       expect(manager.validateAndParse(state)).toBeNull();
     });

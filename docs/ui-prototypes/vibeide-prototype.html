@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeIDE — Phase 2 Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS Custom Properties (Theme System) ===== */
+:root {
+  /* Tokyo Night Dark (default) */
+  --bg: #1a1b26;
+  --bg-deep: #16161e;
+  --fg: #c0caf5;
+  --fg-dim: #565f89;
+  --fg-faint: #414868;
+  --border: #2a2b3d;
+  --accent: #7aa2f7;
+  --surface: #16161e;
+  --surface-hover: #2a2b3d;
+  --error: #f7768e;
+  --success: #9ece6a;
+  --warning: #e0af68;
+  --complete: #7aa2f7;
+  --idle: #414868;
+  --scrollbar-track: #1a1b26;
+  --scrollbar-thumb: #414868;
+  --scrollbar-thumb-hover: #565f89;
+  --selection: #33467c;
+  --magenta: #bb9af7;
+  --cyan: #7dcfff;
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* Radii */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+
+  /* Transition */
+  --t: 150ms ease;
+
+  /* Sidebar */
+  --sidebar-w: 240px;
+  --sidebar-collapsed-w: 48px;
+  --status-strip-h: 28px;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* ===== Animations ===== */
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 var(--warning); }
+  50% { box-shadow: 0 0 0 4px transparent; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-out-right {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(120%); opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes recording-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+
+/* ===== Screen Navigation (Tabs) ===== */
+.screen-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 36px;
+}
+
+.screen-nav .logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent);
+  margin-right: var(--sp-3);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.screen-nav button {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: var(--sp-1) var(--sp-2);
+  background: transparent;
+  color: var(--fg-dim);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+}
+
+.screen-nav button:hover {
+  color: var(--fg);
+  background: var(--surface-hover);
+}
+
+.screen-nav button.active {
+  color: var(--accent);
+  background: var(--surface-hover);
+  border-color: var(--border);
+}
+
+/* ===== App Shell ===== */
+.app-shell {
+  display: flex;
+  height: calc(100vh - 36px);
+  margin-top: 36px;
+}
+
+.screen { display: none; width: 100%; height: 100%; }
+.screen.active { display: flex; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-deep);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--t), min-width var(--t);
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-w);
+  min-width: var(--sidebar-collapsed-w);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  height: 40px;
+}
+
+.sidebar-header .label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+}
+
+.sidebar.collapsed .label { display: none; }
+
+.sidebar-header .actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.sidebar.collapsed .actions .btn-new-project { display: none; }
+
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  transition: all var(--t);
+}
+
+.icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+/* Project list */
+.project-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) 0;
+}
+
+.project-entry {
+  padding: var(--sp-1) var(--sp-3);
+  cursor: pointer;
+  transition: background var(--t);
+}
+
+.project-entry:hover { background: var(--surface-hover); }
+
+.project-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.running { background: var(--success); }
+.status-dot.needs-input {
+  background: var(--warning);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.status-dot.error { background: var(--error); }
+.status-dot.complete { background: var(--complete); }
+.status-dot.idle { background: var(--idle); }
+
+.project-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .project-name { display: none; }
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 8px;
+  line-height: 1.4;
+}
+
+.badge-agents {
+  background: var(--surface-hover);
+  color: var(--fg-dim);
+}
+
+.badge-notif {
+  background: var(--warning);
+  color: var(--bg);
+}
+
+.sidebar.collapsed .badge { display: none; }
+
+.project-chevron {
+  color: var(--fg-faint);
+  font-size: 10px;
+  transition: transform var(--t);
+  margin-right: var(--sp-1);
+}
+
+.project-entry.expanded .project-chevron { transform: rotate(90deg); }
+
+/* Agent sublist */
+.agent-list {
+  display: none;
+  padding-left: 20px;
+}
+
+.project-entry.expanded .agent-list { display: block; }
+
+.agent-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-1);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--fg-dim);
+  transition: all var(--t);
+}
+
+.agent-item:hover { color: var(--fg); background: var(--surface-hover); }
+
+.agent-icon {
+  font-size: 10px;
+  width: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.agent-icon.claude { color: var(--accent); }
+.agent-icon.gemini { color: var(--magenta); }
+.agent-icon.shell { color: var(--fg-dim); }
+
+.agent-status-text {
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.agent-status-text.running { color: var(--success); }
+.agent-status-text.needs-input { color: var(--warning); animation: pulse-amber 2s ease-in-out infinite; }
+.agent-status-text.complete { color: var(--complete); }
+.agent-status-text.idle { color: var(--idle); }
+.agent-status-text.error { color: var(--error); }
+
+/* Quick actions */
+.quick-actions {
+  border-top: 1px solid var(--border);
+  padding: var(--sp-2) var(--sp-3);
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.sidebar.collapsed .quick-actions { flex-direction: column; align-items: center; padding: var(--sp-2) var(--sp-1); }
+
+.quick-action-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-hover);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+}
+
+.quick-action-btn:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.sidebar.collapsed .quick-action-btn span { display: none; }
+
+/* ===== Workspace Area ===== */
+.workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Terminal Grid */
+.terminal-grid {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  background: var(--border);
+  padding: 0;
+}
+
+.terminal-grid.grid-2x2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.terminal-grid.grid-1x1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Terminal Pane */
+.terminal-pane {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: outline var(--t);
+  outline: 1px solid transparent;
+}
+
+.terminal-pane:hover {
+  outline: 1px solid var(--accent);
+}
+
+.terminal-pane.focused {
+  outline: 2px solid var(--accent);
+}
+
+/* Agent Status Strip */
+.agent-strip {
+  height: var(--status-strip-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.agent-strip.needs-input {
+  background: color-mix(in srgb, var(--warning) 15%, var(--bg-deep));
+  border-bottom-color: var(--warning);
+  animation: pulse-amber 3s ease-in-out infinite;
+}
+
+.agent-strip.complete {
+  border-bottom-color: var(--complete);
+}
+
+.agent-strip.error {
+  border-bottom-color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--bg-deep));
+}
+
+.agent-strip .agent-type {
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.agent-strip .agent-type .type-icon {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+}
+
+.agent-strip .agent-type .type-icon.claude { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.agent-strip .agent-type .type-icon.gemini { background: color-mix(in srgb, var(--magenta) 20%, transparent); color: var(--magenta); }
+.agent-strip .agent-type .type-icon.shell { background: color-mix(in srgb, var(--fg-dim) 20%, transparent); color: var(--fg-dim); }
+
+.agent-strip .sep {
+  color: var(--fg-faint);
+  font-size: 10px;
+}
+
+.agent-strip .status-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.agent-strip .status-label.running { color: var(--success); }
+.agent-strip .status-label.needs-input { color: var(--warning); }
+.agent-strip .status-label.complete { color: var(--complete); }
+.agent-strip .status-label.idle { color: var(--fg-dim); }
+.agent-strip .status-label.error { color: var(--error); }
+
+.agent-strip .uptime { color: var(--fg-dim); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+.agent-strip .cwd { color: var(--fg-faint); font-size: 11px; font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+.agent-strip .close-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--fg-faint);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  transition: all var(--t);
+}
+
+.agent-strip .close-btn:hover { background: var(--error); color: var(--bg); }
+
+/* Terminal Content */
+.terminal-content {
+  flex: 1;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-content .dim { color: var(--fg-dim); }
+.terminal-content .accent { color: var(--accent); }
+.terminal-content .success { color: var(--success); }
+.terminal-content .warning { color: var(--warning); }
+.terminal-content .err { color: var(--error); }
+.terminal-content .magenta { color: var(--magenta); }
+.terminal-content .cyan { color: var(--cyan); }
+.terminal-content .cursor-blink { animation: pulse-amber 1s step-end infinite; }
+
+/* ===== Divider handles (decorative) ===== */
+.grid-divider-h, .grid-divider-v {
+  position: absolute;
+  z-index: 2;
+}
+
+/* ===== Notification Toast ===== */
+.toast-container {
+  position: fixed;
+  top: 48px;
+  right: var(--sp-4);
+  z-index: 900;
+}
+
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  min-width: 280px;
+  max-width: 360px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: slide-in-right 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.toast.dismissing {
+  animation: slide-out-right 0.3s ease-in forwards;
+}
+
+.toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toast-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.toast-title .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.toast-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--fg-faint);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+  transition: color var(--t);
+}
+
+.toast-dismiss:hover { color: var(--fg); }
+
+.toast-body {
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.toast-action {
+  align-self: flex-end;
+}
+
+.toast-action button {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: var(--sp-1) var(--sp-3);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all var(--t);
+}
+
+.toast-action button:hover {
+  background: var(--warning);
+  color: var(--bg);
+}
+
+/* ===== Focus Mode Bottom Bar ===== */
+.focus-bar {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-4);
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.focus-bar .info { color: var(--fg-dim); }
+.focus-bar .info strong { color: var(--accent); font-weight: 600; }
+
+.focus-bar .shortcuts {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+.focus-bar .shortcut {
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+.focus-bar .shortcut kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 1px 4px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg-dim);
+  margin-right: 2px;
+}
+
+/* ===== Modal Overlay Base ===== */
+.modal-overlay {
+  position: fixed;
+  top: 36px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 800;
+  display: flex;
+  animation: fade-in 0.15s ease;
+}
+
+/* ===== File Explorer ===== */
+.file-explorer {
+  width: 60%;
+  max-width: 800px;
+  max-height: 70vh;
+  margin: 10vh auto auto;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fade-in-up 0.2s ease;
+}
+
+.file-explorer-search {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.file-explorer-search input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  outline: none;
+  transition: border-color var(--t);
+}
+
+.file-explorer-search input:focus { border-color: var(--accent); }
+.file-explorer-search input::placeholder { color: var(--fg-faint); }
+
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) 0;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-1) var(--sp-4);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--t);
+}
+
+.file-tree-item:hover { background: var(--surface-hover); }
+.file-tree-item.selected { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+.file-tree-item .indent { display: inline-block; }
+.file-tree-item .icon { width: 20px; color: var(--fg-dim); font-size: 12px; text-align: center; flex-shrink: 0; }
+.file-tree-item .icon.folder { color: var(--accent); }
+.file-tree-item .icon.file-ts { color: var(--accent); }
+.file-tree-item .icon.file-json { color: var(--warning); }
+.file-tree-item .icon.file-md { color: var(--fg-dim); }
+.file-tree-item .icon.file-test { color: var(--success); }
+.file-tree-item .fname { flex: 1; color: var(--fg); }
+.file-tree-item .flines { font-size: 11px; color: var(--fg-faint); font-family: 'JetBrains Mono', monospace; }
+
+.file-explorer-footer {
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--sp-4);
+  background: var(--bg-deep);
+}
+
+.file-explorer-footer .fkey {
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+.file-explorer-footer .fkey kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 1px 4px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg-dim);
+  margin-right: 3px;
+}
+
+/* Code Viewer inside file explorer */
+.code-viewer {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.code-viewer .code-line {
+  display: flex;
+  padding: 0 var(--sp-4);
+  transition: background var(--t);
+}
+
+.code-viewer .code-line:hover { background: var(--surface-hover); }
+.code-viewer .line-num { width: 40px; color: var(--fg-faint); text-align: right; padding-right: var(--sp-3); flex-shrink: 0; user-select: none; }
+.code-viewer .line-content { flex: 1; color: var(--fg); white-space: pre; }
+.code-viewer .line-content .kw { color: var(--magenta); }
+.code-viewer .line-content .fn { color: var(--accent); }
+.code-viewer .line-content .str { color: var(--success); }
+.code-viewer .line-content .cm { color: var(--fg-faint); }
+.code-viewer .line-content .tp { color: var(--cyan); }
+
+/* ===== Command Palette ===== */
+.cmd-palette {
+  width: 50%;
+  max-width: 600px;
+  max-height: 60vh;
+  margin: 10vh auto auto;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fade-in-up 0.2s ease;
+}
+
+.cmd-palette-search {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.cmd-palette-search input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  outline: none;
+  transition: border-color var(--t);
+}
+
+.cmd-palette-search input:focus { border-color: var(--accent); }
+.cmd-palette-search input::placeholder { color: var(--fg-faint); }
+
+.cmd-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) 0;
+}
+
+.cmd-category {
+  padding: var(--sp-2) var(--sp-4) var(--sp-1);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--fg-faint);
+  text-transform: uppercase;
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--t);
+}
+
+.cmd-item:hover { background: var(--surface-hover); }
+.cmd-item.selected { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+.cmd-item .cmd-name { color: var(--fg); }
+.cmd-item .cmd-shortcut {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+/* ===== Voice Input Bar ===== */
+.voice-bar {
+  background: var(--bg-deep);
+  border-top: 2px solid var(--accent);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.voice-bar-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.voice-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+.voice-indicator .rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+  animation: recording-pulse 1.5s ease-in-out infinite;
+}
+
+.voice-indicator .rec-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.voice-transcript {
+  flex: 1;
+  font-size: 14px;
+  color: var(--fg);
+  font-style: italic;
+}
+
+.voice-bar-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.voice-route {
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.voice-route .route-target { color: var(--accent); font-weight: 500; }
+
+.voice-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.voice-actions button {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all var(--t);
+}
+
+.voice-actions .btn-send {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.voice-actions .btn-send:hover { filter: brightness(1.1); }
+
+.voice-actions .btn-cancel {
+  background: transparent;
+  color: var(--fg-dim);
+}
+
+.voice-actions .btn-cancel:hover { color: var(--fg); background: var(--surface-hover); }
+
+.voice-actions .btn-edit {
+  background: transparent;
+  color: var(--fg-dim);
+}
+
+.voice-actions .btn-edit:hover { color: var(--fg); background: var(--surface-hover); }
+
+/* ===== Overview Mode ===== */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.overview-card {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  cursor: pointer;
+  transition: all var(--t);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.overview-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.overview-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overview-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.overview-card-meta {
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.overview-card-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  height: 100px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.overview-pane-mini {
+  border-radius: 2px;
+  position: relative;
+}
+
+.overview-pane-mini .mini-strip {
+  height: 4px;
+  width: 100%;
+}
+
+.overview-pane-mini .mini-content {
+  height: calc(100% - 4px);
+  padding: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 5px;
+  line-height: 1.2;
+  color: var(--fg-faint);
+  overflow: hidden;
+}
+
+.overview-card-agents {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.overview-agent-badge {
+  font-size: 11px;
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-hover);
+  color: var(--fg-dim);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* ===== Theme Switcher ===== */
+.theme-switcher {
+  position: fixed;
+  bottom: var(--sp-4);
+  right: var(--sp-4);
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.theme-switcher button {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-deep);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all var(--t);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.theme-switcher button:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.theme-switcher button.active-theme {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Screen Navigation ===== -->
+<nav class="screen-nav">
+  <span class="logo">VIBEIDE</span>
+  <button class="active" data-screen="workspace" onclick="switchScreen('workspace')">Workspace</button>
+  <button data-screen="focus" onclick="switchScreen('focus')">Focus Mode</button>
+  <button data-screen="file-explorer" onclick="switchScreen('file-explorer')">File Explorer</button>
+  <button data-screen="cmd-palette" onclick="switchScreen('cmd-palette')">Command Palette</button>
+  <button data-screen="voice" onclick="switchScreen('voice')">Voice Input</button>
+  <button data-screen="overview" onclick="switchScreen('overview')">Overview</button>
+</nav>
+
+<!-- ===== Theme Switcher ===== -->
+<div class="theme-switcher">
+  <button class="active-theme" onclick="setTheme('tokyoNight')">Tokyo Night</button>
+  <button onclick="setTheme('tokyoNightLight')">Tokyo Light</button>
+  <button onclick="setTheme('solarizedDark')">Solarized</button>
+</div>
+
+<!-- ===== Toast Container ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ===== App Shell ===== -->
+<div class="app-shell">
+
+  <!-- ===== SCREEN 1: Default Workspace View ===== -->
+  <div class="screen active" id="screen-workspace">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="label">Projects</span>
+        <div class="actions">
+          <button class="icon-btn btn-new-project" title="New Project">+</button>
+          <button class="icon-btn" title="Collapse Sidebar" onclick="toggleSidebar()">&#9776;</button>
+        </div>
+      </div>
+      <div class="project-list">
+        <!-- Project 1: vibeide-api -->
+        <div class="project-entry expanded" onclick="toggleProject(this)">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot needs-input"></span>
+            <span class="project-name">vibeide-api</span>
+            <span class="badge badge-agents">3</span>
+            <span class="badge badge-notif">1</span>
+          </div>
+          <div class="agent-list">
+            <div class="agent-item">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code</span>
+              <span class="status-dot running" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text running">running</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code #2</span>
+              <span class="status-dot needs-input" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text needs-input">needs input</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon shell">$</span>
+              <span>Shell</span>
+              <span class="status-dot idle" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text idle">idle</span>
+            </div>
+          </div>
+        </div>
+        <!-- Project 2: client-app -->
+        <div class="project-entry" onclick="toggleProject(this)">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot running"></span>
+            <span class="project-name">client-app</span>
+            <span class="badge badge-agents">2</span>
+          </div>
+          <div class="agent-list">
+            <div class="agent-item">
+              <span class="agent-icon gemini">G</span>
+              <span>Gemini CLI</span>
+              <span class="status-dot complete" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text complete">complete</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon shell">$</span>
+              <span>Shell</span>
+              <span class="status-dot idle" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text idle">idle</span>
+            </div>
+          </div>
+        </div>
+        <!-- Project 3: infra-deploy -->
+        <div class="project-entry" onclick="toggleProject(this)">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot complete"></span>
+            <span class="project-name">infra-deploy</span>
+            <span class="badge badge-agents">1</span>
+          </div>
+          <div class="agent-list">
+            <div class="agent-item">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code</span>
+              <span class="status-dot complete" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text complete">complete</span>
+            </div>
+          </div>
+        </div>
+        <!-- Project 4: docs-site -->
+        <div class="project-entry" onclick="toggleProject(this)">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot idle"></span>
+            <span class="project-name">docs-site</span>
+            <span class="badge badge-agents">1</span>
+          </div>
+          <div class="agent-list">
+            <div class="agent-item">
+              <span class="agent-icon shell">$</span>
+              <span>Shell</span>
+              <span class="status-dot idle" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text idle">idle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <button class="quick-action-btn" title="New Project">+ <span>Project</span></button>
+        <button class="quick-action-btn" title="New Agent">+ <span>Agent</span></button>
+        <button class="quick-action-btn" title="Settings">&#9881; <span>Settings</span></button>
+      </div>
+    </aside>
+
+    <!-- Workspace -->
+    <div class="workspace">
+      <div class="terminal-grid grid-2x2">
+        <!-- Pane 1: Claude Code, running -->
+        <div class="terminal-pane" onclick="enterFocus()">
+          <div class="agent-strip">
+            <span class="agent-type"><span class="type-icon claude">C</span> Claude Code</span>
+            <span class="sep">|</span>
+            <span class="status-label running">running</span>
+            <span class="sep">|</span>
+            <span class="uptime">12:34</span>
+            <span class="sep">|</span>
+            <span class="cwd">~/projects/vibeide-api</span>
+            <button class="close-btn" title="Kill agent">&times;</button>
+          </div>
+          <div class="terminal-content"><span class="dim">&#9581;&#9472; Claude Code v2.1.81 &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9584;
+&#9474; Working on: Add pagination to users API       &#9474;
+&#9582;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9583;</span>
+
+<span class="dim">Reading</span> <span class="accent">src/api/users.ts</span>
+<span class="dim">Reading</span> <span class="accent">src/models/user.ts</span>
+<span class="dim">Reading</span> <span class="accent">src/middleware/pagination.ts</span>
+
+I see the current implementation uses offset-based
+pagination. I'll add cursor-based pagination:
+
+<span class="dim">Writing</span> <span class="accent">src/api/users.ts</span>
+<span class="dim">Writing</span> <span class="accent">src/middleware/cursor-pagination.ts</span>
+<span class="dim">Writing</span> <span class="accent">tests/api/users-pagination.test.ts</span>
+
+<span class="dim">Running tests...</span>
+ <span class="success">PASS</span>  tests/api/users-pagination.test.ts <span class="dim">(3.2s)</span>
+  <span class="success">&#10003;</span> should return first page with cursor
+  <span class="success">&#10003;</span> should return next page using cursor
+  <span class="success">&#10003;</span> should handle empty results
+  <span class="success">12 passed</span>, <span class="dim">0 failed</span></div>
+        </div>
+
+        <!-- Pane 2: Claude Code #2, needs input -->
+        <div class="terminal-pane">
+          <div class="agent-strip needs-input">
+            <span class="agent-type"><span class="type-icon claude">C</span> Claude Code #2</span>
+            <span class="sep">|</span>
+            <span class="status-label needs-input">needs input</span>
+            <span class="sep">|</span>
+            <span class="uptime">7:21</span>
+            <span class="sep">|</span>
+            <span class="cwd">~/projects/vibeide-api</span>
+            <button class="close-btn" title="Kill agent">&times;</button>
+          </div>
+          <div class="terminal-content">I found 3 potential approaches for the cache layer:
+
+1. <span class="accent">Redis</span> (external dependency, best for distributed)
+2. <span class="accent">In-memory LRU</span> (zero deps, fast, single-process)
+3. <span class="accent">SQLite</span> (persistent, good for moderate scale)
+
+Each has trade-offs:
+<span class="dim">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474; Approach &#9474; Speed    &#9474; Deps      &#9474; Scale    &#9474;
+&#9500;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9508;
+&#9474; Redis    &#9474; ~1ms     &#9474; External  &#9474; Best     &#9474;
+&#9474; LRU      &#9474; ~0.01ms  &#9474; None      &#9474; Single   &#9474;
+&#9474; SQLite   &#9474; ~0.5ms   &#9474; Bundled   &#9474; Moderate &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</span>
+
+<span class="warning">Which approach should I use?</span>
+&gt; <span class="cursor-blink">&#9608;</span></div>
+        </div>
+
+        <!-- Pane 3: Gemini, complete -->
+        <div class="terminal-pane">
+          <div class="agent-strip complete">
+            <span class="agent-type"><span class="type-icon gemini">G</span> Gemini CLI</span>
+            <span class="sep">|</span>
+            <span class="status-label complete">complete</span>
+            <span class="sep">|</span>
+            <span class="uptime">2:05</span>
+            <span class="sep">|</span>
+            <span class="cwd">~/projects/vibeide-api</span>
+            <button class="close-btn" title="Kill agent">&times;</button>
+          </div>
+          <div class="terminal-content"><span class="success">Done!</span> Created 4 test files with 92% coverage.
+
+Summary:
+ <span class="success">&#10003;</span> <span class="accent">src/tests/users.test.ts</span>          <span class="dim">(28 tests)</span>
+ <span class="success">&#10003;</span> <span class="accent">src/tests/api.test.ts</span>            <span class="dim">(15 tests)</span>
+ <span class="success">&#10003;</span> <span class="accent">src/tests/cache.test.ts</span>          <span class="dim">(12 tests)</span>
+ <span class="success">&#10003;</span> <span class="accent">src/tests/integration.test.ts</span>     <span class="dim">(8 tests)</span>
+
+Total: <span class="success">63 tests passed</span>, <span class="dim">0 failed</span>
+Coverage: <span class="success">92.3%</span> <span class="dim">(target: 80%)</span></div>
+        </div>
+
+        <!-- Pane 4: Shell, idle -->
+        <div class="terminal-pane">
+          <div class="agent-strip">
+            <span class="agent-type"><span class="type-icon shell">$</span> Shell</span>
+            <span class="sep">|</span>
+            <span class="status-label idle">idle</span>
+            <span class="sep">|</span>
+            <span class="uptime">0:15</span>
+            <span class="sep">|</span>
+            <span class="cwd">~/projects/vibeide-api</span>
+            <button class="close-btn" title="Kill agent">&times;</button>
+          </div>
+          <div class="terminal-content"><span class="success">ndev</span><span class="dim">@vibeide</span>:<span class="accent">~/projects/vibeide-api</span>$ <span class="cursor-blink">&#9608;</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 2: Focus Mode ===== -->
+  <div class="screen" id="screen-focus">
+    <aside class="sidebar" id="sidebar-focus">
+      <div class="sidebar-header">
+        <span class="label">Projects</span>
+        <div class="actions">
+          <button class="icon-btn btn-new-project" title="New Project">+</button>
+          <button class="icon-btn" title="Collapse Sidebar" onclick="toggleSidebar('sidebar-focus')">&#9776;</button>
+        </div>
+      </div>
+      <div class="project-list">
+        <div class="project-entry expanded" onclick="toggleProject(this)">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot needs-input"></span>
+            <span class="project-name">vibeide-api</span>
+            <span class="badge badge-agents">3</span>
+            <span class="badge badge-notif">1</span>
+          </div>
+          <div class="agent-list">
+            <div class="agent-item" style="background:var(--surface-hover);">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code</span>
+              <span class="status-dot running" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text running">running</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code #2</span>
+              <span class="status-dot needs-input" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text needs-input">needs input</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon shell">$</span>
+              <span>Shell</span>
+              <span class="status-dot idle" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text idle">idle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <button class="quick-action-btn" title="New Project">+ <span>Project</span></button>
+        <button class="quick-action-btn" title="New Agent">+ <span>Agent</span></button>
+        <button class="quick-action-btn" title="Settings">&#9881; <span>Settings</span></button>
+      </div>
+    </aside>
+    <div class="workspace">
+      <div class="terminal-grid grid-1x1">
+        <div class="terminal-pane focused">
+          <div class="agent-strip">
+            <span class="agent-type"><span class="type-icon claude">C</span> Claude Code</span>
+            <span class="sep">|</span>
+            <span class="status-label running">running</span>
+            <span class="sep">|</span>
+            <span class="uptime">12:34</span>
+            <span class="sep">|</span>
+            <span class="cwd">~/projects/vibeide-api</span>
+            <button class="close-btn" title="Kill agent">&times;</button>
+          </div>
+          <div class="terminal-content"><span class="dim">&#9581;&#9472; Claude Code v2.1.81 &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9584;
+&#9474; Working on: Add pagination to users API                                        &#9474;
+&#9582;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9583;</span>
+
+<span class="dim">Reading</span> <span class="accent">src/api/users.ts</span>
+<span class="dim">Reading</span> <span class="accent">src/models/user.ts</span>
+<span class="dim">Reading</span> <span class="accent">src/middleware/pagination.ts</span>
+
+I see the current implementation uses offset-based pagination.
+I'll add cursor-based pagination support:
+
+<span class="dim">Writing</span> <span class="accent">src/api/users.ts</span>
+<span class="dim">Writing</span> <span class="accent">src/middleware/cursor-pagination.ts</span>
+<span class="dim">Writing</span> <span class="accent">tests/api/users-pagination.test.ts</span>
+
+<span class="dim">Running tests...</span>
+ <span class="success">PASS</span>  tests/api/users-pagination.test.ts <span class="dim">(3.2s)</span>
+  <span class="success">&#10003;</span> should return first page with cursor
+  <span class="success">&#10003;</span> should return next page using cursor
+  <span class="success">&#10003;</span> should handle empty results
+  <span class="success">&#10003;</span> should encode/decode cursor correctly
+  <span class="success">&#10003;</span> should respect page size limit
+  <span class="success">&#10003;</span> should return hasNextPage correctly
+  <span class="success">&#10003;</span> should work with filters
+  <span class="success">&#10003;</span> should handle concurrent requests
+  <span class="success">&#10003;</span> should sort by createdAt desc
+  <span class="success">&#10003;</span> should validate cursor format
+  <span class="success">&#10003;</span> should return totalCount
+  <span class="success">&#10003;</span> should handle malformed cursor gracefully
+  <span class="success">12 passed</span>, <span class="dim">0 failed</span>
+
+All tests pass. The cursor-based pagination is implemented.
+Endpoints updated:
+  <span class="accent">GET /api/users?cursor=abc&limit=20</span>
+  <span class="accent">GET /api/users?cursor=abc&limit=20&sort=createdAt</span>
+
+The response format is:
+<span class="dim">{
+  "data": [...],
+  "pagination": {
+    "cursor": "eyJpZCI6MTIzfQ==",
+    "hasNextPage": true,
+    "totalCount": 1847
+  }
+}</span>
+
+Shall I also update the API documentation? <span class="cursor-blink">&#9608;</span></div>
+        </div>
+      </div>
+      <div class="focus-bar">
+        <span class="info">Focused on <strong>Claude Code</strong> &mdash; press <kbd style="font-family:'JetBrains Mono';font-size:11px;padding:1px 4px;background:var(--surface-hover);border:1px solid var(--border);border-radius:3px;color:var(--fg-dim)">Escape</kbd> to return</span>
+        <div class="shortcuts">
+          <span class="shortcut"><kbd>Ctrl+P</kbd> files</span>
+          <span class="shortcut"><kbd>Ctrl+Shift+O</kbd> overview</span>
+          <span class="shortcut"><kbd>Alt+1-4</kbd> switch pane</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 3: File Explorer ===== -->
+  <div class="screen" id="screen-file-explorer">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="label">Projects</span>
+        <div class="actions">
+          <button class="icon-btn">&#9776;</button>
+        </div>
+      </div>
+      <div class="project-list">
+        <div class="project-entry expanded">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot needs-input"></span>
+            <span class="project-name">vibeide-api</span>
+            <span class="badge badge-agents">3</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="workspace" style="position:relative;">
+      <!-- Dimmed terminal grid behind -->
+      <div class="terminal-grid grid-2x2" style="opacity:0.15;pointer-events:none;">
+        <div class="terminal-pane"><div class="agent-strip"><span class="agent-type"><span class="type-icon claude">C</span> Claude Code</span></div><div class="terminal-content dim">...</div></div>
+        <div class="terminal-pane"><div class="agent-strip needs-input"><span class="agent-type"><span class="type-icon claude">C</span> Claude #2</span></div><div class="terminal-content dim">...</div></div>
+        <div class="terminal-pane"><div class="agent-strip complete"><span class="agent-type"><span class="type-icon gemini">G</span> Gemini</span></div><div class="terminal-content dim">...</div></div>
+        <div class="terminal-pane"><div class="agent-strip"><span class="agent-type"><span class="type-icon shell">$</span> Shell</span></div><div class="terminal-content dim">...</div></div>
+      </div>
+      <!-- File Explorer Overlay -->
+      <div class="modal-overlay" style="position:absolute;top:0;">
+        <div class="file-explorer" id="fileExplorer">
+          <div class="file-explorer-search">
+            <input type="text" placeholder="Search files..." value="users" id="fileSearchInput">
+          </div>
+          <div id="fileExplorerBody">
+            <div class="file-tree" id="fileTree">
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:0"></span><span class="icon folder">&#128193;</span><span class="fname">src/</span><span class="flines"></span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:16px"></span><span class="icon folder">&#128193;</span><span class="fname">api/</span><span class="flines"></span></div>
+              <div class="file-tree-item selected" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">users.ts</span><span class="flines">234 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">agents.ts</span><span class="flines">187 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">projects.ts</span><span class="flines">156 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:16px"></span><span class="icon folder">&#128193;</span><span class="fname">models/</span><span class="flines"></span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">user.ts</span><span class="flines">89 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">agent.ts</span><span class="flines">67 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:16px"></span><span class="icon folder">&#128193;</span><span class="fname">middleware/</span><span class="flines"></span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">cursor-pagination.ts</span><span class="flines">156 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">auth.ts</span><span class="flines">92 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">rate-limit.ts</span><span class="flines">48 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:16px"></span><span class="icon folder">&#128193;</span><span class="fname">types/</span><span class="flines"></span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-ts">TS</span><span class="fname">user-types.ts</span><span class="flines">45 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:0"></span><span class="icon folder">&#128193;</span><span class="fname">tests/</span><span class="flines"></span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:16px"></span><span class="icon folder">&#128193;</span><span class="fname">api/</span><span class="flines"></span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-test">TS</span><span class="fname">users-pagination.test.ts</span><span class="flines">312 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:32px"></span><span class="icon file-test">TS</span><span class="fname">users.test.ts</span><span class="flines">189 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:0"></span><span class="icon file-json">{ }</span><span class="fname">package.json</span><span class="flines">42 lines</span></div>
+              <div class="file-tree-item" onclick="showCodeViewer()"><span class="indent" style="width:0"></span><span class="icon file-json">{ }</span><span class="fname">tsconfig.json</span><span class="flines">28 lines</span></div>
+            </div>
+          </div>
+          <div class="file-explorer-footer">
+            <span class="fkey"><kbd>Enter</kbd> Open</span>
+            <span class="fkey"><kbd>Ctrl+D</kbd> Diff</span>
+            <span class="fkey"><kbd>Ctrl+G</kbd> Grep</span>
+            <span class="fkey"><kbd>Esc</kbd> Close</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 4: Command Palette ===== -->
+  <div class="screen" id="screen-cmd-palette">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="label">Projects</span>
+        <div class="actions"><button class="icon-btn">&#9776;</button></div>
+      </div>
+      <div class="project-list">
+        <div class="project-entry expanded">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot needs-input"></span>
+            <span class="project-name">vibeide-api</span>
+            <span class="badge badge-agents">3</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="workspace" style="position:relative;">
+      <div class="terminal-grid grid-2x2" style="opacity:0.15;pointer-events:none;">
+        <div class="terminal-pane"><div class="agent-strip"><span class="agent-type"><span class="type-icon claude">C</span> Claude</span></div><div class="terminal-content dim">...</div></div>
+        <div class="terminal-pane"><div class="agent-strip needs-input"><span class="agent-type"><span class="type-icon claude">C</span> Claude #2</span></div><div class="terminal-content dim">...</div></div>
+        <div class="terminal-pane"><div class="agent-strip complete"><span class="agent-type"><span class="type-icon gemini">G</span> Gemini</span></div><div class="terminal-content dim">...</div></div>
+        <div class="terminal-pane"><div class="agent-strip"><span class="agent-type"><span class="type-icon shell">$</span> Shell</span></div><div class="terminal-content dim">...</div></div>
+      </div>
+      <div class="modal-overlay" style="position:absolute;top:0;">
+        <div class="cmd-palette">
+          <div class="cmd-palette-search">
+            <input type="text" placeholder="Type a command..." id="cmdSearchInput">
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-category">Agents</div>
+            <div class="cmd-item selected"><span class="cmd-name">New Claude Agent</span><span class="cmd-shortcut">Ctrl+Shift+1</span></div>
+            <div class="cmd-item"><span class="cmd-name">New Gemini Agent</span><span class="cmd-shortcut">Ctrl+Shift+2</span></div>
+            <div class="cmd-item"><span class="cmd-name">New Shell</span><span class="cmd-shortcut">Ctrl+Shift+3</span></div>
+            <div class="cmd-item"><span class="cmd-name">Kill Agent</span><span class="cmd-shortcut">Ctrl+Shift+K</span></div>
+            <div class="cmd-item"><span class="cmd-name">Restart Agent</span><span class="cmd-shortcut">Ctrl+Shift+R</span></div>
+
+            <div class="cmd-category">Layout</div>
+            <div class="cmd-item"><span class="cmd-name">Split Vertical</span><span class="cmd-shortcut">Ctrl+Shift+D</span></div>
+            <div class="cmd-item"><span class="cmd-name">Split Horizontal</span><span class="cmd-shortcut">Ctrl+Shift+E</span></div>
+            <div class="cmd-item"><span class="cmd-name">Focus Mode</span><span class="cmd-shortcut">Ctrl+Shift+M</span></div>
+            <div class="cmd-item"><span class="cmd-name">Overview Mode</span><span class="cmd-shortcut">Ctrl+Shift+O</span></div>
+            <div class="cmd-item"><span class="cmd-name">Close Pane</span><span class="cmd-shortcut">Ctrl+Shift+W</span></div>
+
+            <div class="cmd-category">Files</div>
+            <div class="cmd-item"><span class="cmd-name">Open File</span><span class="cmd-shortcut">Ctrl+P</span></div>
+            <div class="cmd-item"><span class="cmd-name">View Diff</span><span class="cmd-shortcut">Ctrl+D</span></div>
+            <div class="cmd-item"><span class="cmd-name">Search in Files</span><span class="cmd-shortcut">Ctrl+Shift+F</span></div>
+
+            <div class="cmd-category">Project</div>
+            <div class="cmd-item"><span class="cmd-name">New Project</span><span class="cmd-shortcut">Ctrl+Shift+N</span></div>
+            <div class="cmd-item"><span class="cmd-name">Switch Project</span><span class="cmd-shortcut">Ctrl+Shift+P</span></div>
+            <div class="cmd-item"><span class="cmd-name">Rename Project</span><span class="cmd-shortcut"></span></div>
+
+            <div class="cmd-category">Theme</div>
+            <div class="cmd-item"><span class="cmd-name">Tokyo Night Dark</span><span class="cmd-shortcut"></span></div>
+            <div class="cmd-item"><span class="cmd-name">Tokyo Night Light</span><span class="cmd-shortcut"></span></div>
+            <div class="cmd-item"><span class="cmd-name">Solarized Dark</span><span class="cmd-shortcut"></span></div>
+
+            <div class="cmd-category">Voice</div>
+            <div class="cmd-item"><span class="cmd-name">Toggle Voice Mode</span><span class="cmd-shortcut">Caps Lock (hold)</span></div>
+            <div class="cmd-item"><span class="cmd-name">Voice Settings</span><span class="cmd-shortcut"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 5: Voice Input ===== -->
+  <div class="screen" id="screen-voice">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="label">Projects</span>
+        <div class="actions"><button class="icon-btn">&#9776;</button></div>
+      </div>
+      <div class="project-list">
+        <div class="project-entry expanded" onclick="toggleProject(this)">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot needs-input"></span>
+            <span class="project-name">vibeide-api</span>
+            <span class="badge badge-agents">3</span>
+          </div>
+          <div class="agent-list">
+            <div class="agent-item" style="background:var(--surface-hover);">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code</span>
+              <span class="status-dot running" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text running">running</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon claude">C</span>
+              <span>Claude Code #2</span>
+              <span class="status-dot needs-input" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text needs-input">needs input</span>
+            </div>
+            <div class="agent-item">
+              <span class="agent-icon shell">$</span>
+              <span>Shell</span>
+              <span class="status-dot idle" style="width:6px;height:6px;margin-left:auto;margin-right:4px;"></span>
+              <span class="agent-status-text idle">idle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="workspace">
+      <div class="terminal-grid grid-2x2" style="opacity:0.85;">
+        <div class="terminal-pane">
+          <div class="agent-strip">
+            <span class="agent-type"><span class="type-icon claude">C</span> Claude Code</span>
+            <span class="sep">|</span>
+            <span class="status-label running">running</span>
+            <span class="sep">|</span>
+            <span class="uptime">12:34</span>
+          </div>
+          <div class="terminal-content"><span class="dim">Waiting for input...</span>
+
+<span class="success">ndev</span><span class="dim">@vibeide</span>:<span class="accent">~/projects/vibeide-api</span>$ <span class="cursor-blink">&#9608;</span></div>
+        </div>
+        <div class="terminal-pane">
+          <div class="agent-strip needs-input">
+            <span class="agent-type"><span class="type-icon claude">C</span> Claude Code #2</span>
+            <span class="sep">|</span>
+            <span class="status-label needs-input">needs input</span>
+          </div>
+          <div class="terminal-content"><span class="warning">Which approach should I use?</span>
+&gt; <span class="cursor-blink">&#9608;</span></div>
+        </div>
+        <div class="terminal-pane">
+          <div class="agent-strip complete">
+            <span class="agent-type"><span class="type-icon gemini">G</span> Gemini CLI</span>
+            <span class="sep">|</span>
+            <span class="status-label complete">complete</span>
+          </div>
+          <div class="terminal-content"><span class="success">63 tests passed</span>, <span class="dim">0 failed</span>
+Coverage: <span class="success">92.3%</span></div>
+        </div>
+        <div class="terminal-pane">
+          <div class="agent-strip">
+            <span class="agent-type"><span class="type-icon shell">$</span> Shell</span>
+            <span class="sep">|</span>
+            <span class="status-label idle">idle</span>
+          </div>
+          <div class="terminal-content"><span class="success">ndev</span><span class="dim">@vibeide</span>:<span class="accent">~</span>$ <span class="cursor-blink">&#9608;</span></div>
+        </div>
+      </div>
+      <div class="voice-bar">
+        <div class="voice-bar-top">
+          <div class="voice-indicator">
+            <span class="rec-dot"></span>
+            <span style="color:var(--error);font-weight:600;">VOICE</span>
+            <span class="rec-label">[recording...]</span>
+          </div>
+          <span class="voice-transcript">"Add pagination to the users API endpoint using cursor-based approach"</span>
+        </div>
+        <div class="voice-bar-bottom">
+          <span class="voice-route">&#8594; Routing to: <span class="route-target">vibeide-api / Claude Code</span></span>
+          <div class="voice-actions">
+            <button class="btn-send">Send</button>
+            <button class="btn-cancel">Cancel</button>
+            <button class="btn-edit">Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 6: Overview Mode ===== -->
+  <div class="screen" id="screen-overview">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="label">Projects</span>
+        <div class="actions"><button class="icon-btn">&#9776;</button></div>
+      </div>
+      <div class="project-list">
+        <div class="project-entry">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot needs-input"></span>
+            <span class="project-name">vibeide-api</span>
+            <span class="badge badge-agents">3</span>
+            <span class="badge badge-notif">1</span>
+          </div>
+        </div>
+        <div class="project-entry">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot running"></span>
+            <span class="project-name">client-app</span>
+            <span class="badge badge-agents">2</span>
+          </div>
+        </div>
+        <div class="project-entry">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot complete"></span>
+            <span class="project-name">infra-deploy</span>
+            <span class="badge badge-agents">1</span>
+          </div>
+        </div>
+        <div class="project-entry">
+          <div class="project-header">
+            <span class="project-chevron">&#9654;</span>
+            <span class="status-dot idle"></span>
+            <span class="project-name">docs-site</span>
+            <span class="badge badge-agents">1</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="workspace">
+      <div class="overview-grid">
+        <!-- Card 1: vibeide-api -->
+        <div class="overview-card" onclick="switchScreen('workspace')">
+          <div class="overview-card-header">
+            <div class="overview-card-title">
+              <span class="status-dot needs-input"></span>
+              vibeide-api
+            </div>
+            <span class="overview-card-meta">3 agents &middot; active 2m ago</span>
+          </div>
+          <div class="overview-card-preview">
+            <div class="overview-pane-mini"><div class="mini-strip" style="background:var(--success);"></div><div class="mini-content" style="background:var(--bg);">Reading src/api/users.ts...<br>Writing cursor-pagination.ts<br>Running tests...<br>12 passed, 0 failed</div></div>
+            <div class="overview-pane-mini"><div class="mini-strip" style="background:var(--warning);animation:pulse-amber 3s infinite;"></div><div class="mini-content" style="background:var(--bg);">3 potential approaches:<br>1. Redis<br>2. In-memory LRU<br>3. SQLite<br>Which approach?</div></div>
+            <div class="overview-pane-mini"><div class="mini-strip" style="background:var(--complete);"></div><div class="mini-content" style="background:var(--bg);">Done! 4 test files<br>92% coverage<br>63 tests passed</div></div>
+            <div class="overview-pane-mini"><div class="mini-strip" style="background:var(--idle);"></div><div class="mini-content" style="background:var(--bg);">ndev@vibeide:~$</div></div>
+          </div>
+          <div class="overview-card-agents">
+            <span class="overview-agent-badge"><span class="status-dot running" style="width:6px;height:6px;"></span> Claude Code</span>
+            <span class="overview-agent-badge"><span class="status-dot needs-input" style="width:6px;height:6px;"></span> Claude #2</span>
+            <span class="overview-agent-badge"><span class="status-dot idle" style="width:6px;height:6px;"></span> Shell</span>
+          </div>
+        </div>
+
+        <!-- Card 2: client-app -->
+        <div class="overview-card" onclick="switchScreen('workspace')">
+          <div class="overview-card-header">
+            <div class="overview-card-title">
+              <span class="status-dot running"></span>
+              client-app
+            </div>
+            <span class="overview-card-meta">2 agents &middot; active 8m ago</span>
+          </div>
+          <div class="overview-card-preview">
+            <div class="overview-pane-mini" style="grid-column:1/3;"><div class="mini-strip" style="background:var(--success);"></div><div class="mini-content" style="background:var(--bg);">Implementing React component...<br>Creating UserList.tsx<br>Adding pagination hooks</div></div>
+            <div class="overview-pane-mini" style="grid-column:1/3;"><div class="mini-strip" style="background:var(--idle);"></div><div class="mini-content" style="background:var(--bg);">ndev@vibeide:~/client-app$</div></div>
+          </div>
+          <div class="overview-card-agents">
+            <span class="overview-agent-badge"><span class="status-dot complete" style="width:6px;height:6px;"></span> Gemini CLI</span>
+            <span class="overview-agent-badge"><span class="status-dot idle" style="width:6px;height:6px;"></span> Shell</span>
+          </div>
+        </div>
+
+        <!-- Card 3: infra-deploy -->
+        <div class="overview-card" onclick="switchScreen('workspace')">
+          <div class="overview-card-header">
+            <div class="overview-card-title">
+              <span class="status-dot complete"></span>
+              infra-deploy
+            </div>
+            <span class="overview-card-meta">1 agent &middot; done 15m ago</span>
+          </div>
+          <div class="overview-card-preview">
+            <div class="overview-pane-mini" style="grid-column:1/3;grid-row:1/3;"><div class="mini-strip" style="background:var(--complete);"></div><div class="mini-content" style="background:var(--bg);">Terraform plan complete<br>3 resources to add<br>0 to change, 0 to destroy<br><br>Ready to apply.</div></div>
+          </div>
+          <div class="overview-card-agents">
+            <span class="overview-agent-badge"><span class="status-dot complete" style="width:6px;height:6px;"></span> Claude Code</span>
+          </div>
+        </div>
+
+        <!-- Card 4: docs-site -->
+        <div class="overview-card" onclick="switchScreen('workspace')">
+          <div class="overview-card-header">
+            <div class="overview-card-title">
+              <span class="status-dot idle"></span>
+              docs-site
+            </div>
+            <span class="overview-card-meta">1 agent &middot; idle 2h ago</span>
+          </div>
+          <div class="overview-card-preview">
+            <div class="overview-pane-mini" style="grid-column:1/3;grid-row:1/3;"><div class="mini-strip" style="background:var(--idle);"></div><div class="mini-content" style="background:var(--bg);">ndev@vibeide:~/docs-site$</div></div>
+          </div>
+          <div class="overview-card-agents">
+            <span class="overview-agent-badge"><span class="status-dot idle" style="width:6px;height:6px;"></span> Shell</span>
+          </div>
+        </div>
+
+        <!-- Card 5: ml-pipeline (extra project) -->
+        <div class="overview-card" onclick="switchScreen('workspace')">
+          <div class="overview-card-header">
+            <div class="overview-card-title">
+              <span class="status-dot error"></span>
+              ml-pipeline
+            </div>
+            <span class="overview-card-meta">2 agents &middot; error 3m ago</span>
+          </div>
+          <div class="overview-card-preview">
+            <div class="overview-pane-mini" style="grid-column:1/3;"><div class="mini-strip" style="background:var(--error);"></div><div class="mini-content" style="background:var(--bg);">Error: CUDA out of memory<br>Tried to allocate 2.00 GiB<br>Process killed (OOM)</div></div>
+            <div class="overview-pane-mini" style="grid-column:1/3;"><div class="mini-strip" style="background:var(--idle);"></div><div class="mini-content" style="background:var(--bg);">ndev@vibeide:~/ml-pipeline$</div></div>
+          </div>
+          <div class="overview-card-agents">
+            <span class="overview-agent-badge"><span class="status-dot error" style="width:6px;height:6px;"></span> Claude Code</span>
+            <span class="overview-agent-badge"><span class="status-dot idle" style="width:6px;height:6px;"></span> Shell</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Themes =====
+const themes = {
+  tokyoNight: {
+    '--bg': '#1a1b26',
+    '--bg-deep': '#16161e',
+    '--fg': '#c0caf5',
+    '--fg-dim': '#565f89',
+    '--fg-faint': '#414868',
+    '--border': '#2a2b3d',
+    '--accent': '#7aa2f7',
+    '--surface': '#16161e',
+    '--surface-hover': '#2a2b3d',
+    '--error': '#f7768e',
+    '--success': '#9ece6a',
+    '--warning': '#e0af68',
+    '--complete': '#7aa2f7',
+    '--idle': '#414868',
+    '--scrollbar-track': '#1a1b26',
+    '--scrollbar-thumb': '#414868',
+    '--scrollbar-thumb-hover': '#565f89',
+    '--selection': '#33467c',
+    '--magenta': '#bb9af7',
+    '--cyan': '#7dcfff'
+  },
+  tokyoNightLight: {
+    '--bg': '#d5d6db',
+    '--bg-deep': '#cbccd1',
+    '--fg': '#343b58',
+    '--fg-dim': '#6172b0',
+    '--fg-faint': '#9699a3',
+    '--border': '#b4b5b9',
+    '--accent': '#34548a',
+    '--surface': '#d5d6db',
+    '--surface-hover': '#c0c1c6',
+    '--error': '#8c4351',
+    '--success': '#485e30',
+    '--warning': '#8f5e15',
+    '--complete': '#34548a',
+    '--idle': '#9699a3',
+    '--scrollbar-track': '#d5d6db',
+    '--scrollbar-thumb': '#9699a3',
+    '--scrollbar-thumb-hover': '#6172b0',
+    '--selection': '#99a7df',
+    '--magenta': '#5a4a78',
+    '--cyan': '#0f4b6e'
+  },
+  solarizedDark: {
+    '--bg': '#002b36',
+    '--bg-deep': '#001e26',
+    '--fg': '#839496',
+    '--fg-dim': '#586e75',
+    '--fg-faint': '#073642',
+    '--border': '#073642',
+    '--accent': '#268bd2',
+    '--surface': '#002b36',
+    '--surface-hover': '#073642',
+    '--error': '#dc322f',
+    '--success': '#859900',
+    '--warning': '#b58900',
+    '--complete': '#268bd2',
+    '--idle': '#073642',
+    '--scrollbar-track': '#002b36',
+    '--scrollbar-thumb': '#073642',
+    '--scrollbar-thumb-hover': '#586e75',
+    '--selection': '#073642',
+    '--magenta': '#d33682',
+    '--cyan': '#2aa198'
+  }
+};
+
+let currentTheme = 'tokyoNight';
+
+function setTheme(name) {
+  if (!themes[name]) return;
+  currentTheme = name;
+  const root = document.documentElement;
+  const t = themes[name];
+  for (const [prop, val] of Object.entries(t)) {
+    root.style.setProperty(prop, val);
+  }
+  // Update button states
+  document.querySelectorAll('.theme-switcher button').forEach(btn => {
+    btn.classList.remove('active-theme');
+  });
+  const index = Object.keys(themes).indexOf(name);
+  const btns = document.querySelectorAll('.theme-switcher button');
+  if (btns[index]) btns[index].classList.add('active-theme');
+}
+
+// ===== Screen Navigation =====
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen-nav button[data-screen]').forEach(b => b.classList.remove('active'));
+  const screen = document.getElementById('screen-' + name);
+  const btn = document.querySelector('.screen-nav button[data-screen="' + name + '"]');
+  if (screen) screen.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ===== Sidebar =====
+function toggleSidebar(id) {
+  const sidebar = document.getElementById(id || 'sidebar');
+  if (sidebar) sidebar.classList.toggle('collapsed');
+}
+
+// ===== Project Expand/Collapse =====
+function toggleProject(el) {
+  el.classList.toggle('expanded');
+}
+
+// ===== Focus Mode =====
+function enterFocus() {
+  switchScreen('focus');
+}
+
+// ===== Toast =====
+function showToast() {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <div class="toast-header">
+      <span class="toast-title"><span class="dot"></span> Claude #2 needs input</span>
+      <button class="toast-dismiss" onclick="dismissToast(this.parentElement.parentElement)">&times;</button>
+    </div>
+    <div class="toast-body">Agent is waiting for a response in <strong>vibeide-api</strong></div>
+    <div class="toast-action">
+      <button onclick="switchScreen('workspace');dismissToast(this.closest('.toast'))">Go to</button>
+    </div>
+  `;
+  container.appendChild(toast);
+  // Auto-dismiss after 8s
+  setTimeout(() => { if (toast.parentElement) dismissToast(toast); }, 8000);
+}
+
+function dismissToast(toast) {
+  toast.classList.add('dismissing');
+  setTimeout(() => toast.remove(), 300);
+}
+
+// ===== Code Viewer =====
+function showCodeViewer() {
+  const body = document.getElementById('fileExplorerBody');
+  if (body.querySelector('.code-viewer')) return; // already showing
+  const tree = document.getElementById('fileTree');
+  tree.style.display = 'none';
+  const viewer = document.createElement('div');
+  viewer.className = 'code-viewer';
+  const lines = [
+    ['<span class="cm">// src/api/users.ts</span>'],
+    ['<span class="kw">import</span> { <span class="fn">Router</span>, <span class="tp">Request</span>, <span class="tp">Response</span> } <span class="kw">from</span> <span class="str">\'express\'</span>;'],
+    ['<span class="kw">import</span> { <span class="fn">cursorPaginate</span> } <span class="kw">from</span> <span class="str">\'../middleware/cursor-pagination\'</span>;'],
+    ['<span class="kw">import</span> { <span class="fn">UserModel</span> } <span class="kw">from</span> <span class="str">\'../models/user\'</span>;'],
+    ['<span class="kw">import</span> <span class="kw">type</span> { <span class="tp">PaginatedResponse</span>, <span class="tp">CursorParams</span> } <span class="kw">from</span> <span class="str">\'../types/user-types\'</span>;'],
+    [''],
+    ['<span class="kw">const</span> <span class="fn">router</span> = <span class="fn">Router</span>();'],
+    [''],
+    ['<span class="cm">/**</span>'],
+    ['<span class="cm"> * GET /api/users</span>'],
+    ['<span class="cm"> * Supports cursor-based pagination</span>'],
+    ['<span class="cm"> * @param cursor - Base64 encoded cursor string</span>'],
+    ['<span class="cm"> * @param limit  - Number of results (default: 20, max: 100)</span>'],
+    ['<span class="cm"> */</span>'],
+    ['<span class="fn">router</span>.<span class="fn">get</span>(<span class="str">\'/\'</span>, <span class="kw">async</span> (<span class="fn">req</span>: <span class="tp">Request</span>, <span class="fn">res</span>: <span class="tp">Response</span>) =&gt; {'],
+    ['  <span class="kw">const</span> { cursor, limit = <span class="str">\'20\'</span>, sort = <span class="str">\'createdAt\'</span> } = req.query;'],
+    [''],
+    ['  <span class="kw">const</span> <span class="fn">params</span>: <span class="tp">CursorParams</span> = {'],
+    ['    cursor: cursor <span class="kw">as</span> <span class="tp">string</span> | <span class="kw">undefined</span>,'],
+    ['    limit: Math.<span class="fn">min</span>(<span class="fn">parseInt</span>(limit <span class="kw">as</span> <span class="tp">string</span>, 10), 100),'],
+    ['    sort: sort <span class="kw">as</span> <span class="tp">string</span>,'],
+    ['  };'],
+    [''],
+    ['  <span class="kw">const</span> <span class="fn">result</span> = <span class="kw">await</span> <span class="fn">cursorPaginate</span>(<span class="fn">UserModel</span>, params);'],
+    [''],
+    ['  <span class="kw">const</span> <span class="fn">response</span>: <span class="tp">PaginatedResponse</span> = {'],
+    ['    data: result.items,'],
+    ['    pagination: {'],
+    ['      cursor: result.nextCursor,'],
+    ['      hasNextPage: result.hasMore,'],
+    ['      totalCount: result.total,'],
+    ['    },'],
+    ['  };'],
+    [''],
+    ['  res.<span class="fn">json</span>(response);'],
+    ['});'],
+    [''],
+    ['<span class="kw">export default</span> router;'],
+  ];
+  viewer.innerHTML = lines.map((l, i) =>
+    `<div class="code-line"><span class="line-num">${i + 1}</span><span class="line-content">${l[0]}</span></div>`
+  ).join('');
+  body.appendChild(viewer);
+
+  // Update footer
+  const footer = document.querySelector('#screen-file-explorer .file-explorer-footer');
+  footer.innerHTML = '<span class="fkey"><kbd>Esc</kbd> Back to files</span><span class="fkey" style="margin-left:auto;color:var(--fg-dim);">src/api/users.ts &mdash; 34 lines</span>';
+}
+
+function hideCodeViewer() {
+  const body = document.getElementById('fileExplorerBody');
+  const viewer = body.querySelector('.code-viewer');
+  if (viewer) {
+    viewer.remove();
+    document.getElementById('fileTree').style.display = '';
+    const footer = document.querySelector('#screen-file-explorer .file-explorer-footer');
+    footer.innerHTML = '<span class="fkey"><kbd>Enter</kbd> Open</span><span class="fkey"><kbd>Ctrl+D</kbd> Diff</span><span class="fkey"><kbd>Ctrl+G</kbd> Grep</span><span class="fkey"><kbd>Esc</kbd> Close</span>';
+  }
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Show toast after 2 seconds
+  setTimeout(showToast, 2000);
+
+  // Keyboard handlers
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      // If in code viewer, go back to file tree
+      const viewer = document.getElementById('fileExplorerBody');
+      if (viewer && viewer.querySelector('.code-viewer')) {
+        hideCodeViewer();
+        return;
+      }
+      // If in focus mode, go back to workspace
+      if (document.getElementById('screen-focus').classList.contains('active')) {
+        switchScreen('workspace');
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>

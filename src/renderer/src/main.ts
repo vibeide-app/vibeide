@@ -1,137 +1,20 @@
 import '@xterm/xterm/css/xterm.css';
 import './styles/global.css';
 import './styles/terminal.css';
-import { TerminalManager } from './terminal/terminal-manager';
-import { LayoutManager } from './layout/layout-manager';
-import { AgentList } from './agent/agent-list';
-import { AgentControls } from './agent/agent-controls';
+import { ProjectSidebar } from './project/project-sidebar';
+import { WorkspaceSwitcher } from './project/workspace-switcher';
 import { CommandPalette } from './ui/command-palette';
 import { KeybindingManager } from './ui/keybindings';
+import { KeybindingEditor } from './ui/keybinding-editor';
+import { KEYBINDING_DEFAULTS, loadUserKeybindings, loadUserKeybindingsAsync, getEffectiveKey } from './ui/keybinding-defaults';
 import { applyTheme, loadSavedTheme } from './terminal/terminal-theme';
+import { LAYOUT_PRESETS } from './layout/layout-presets';
+import { FileViewer } from './file/file-viewer';
+import { VoiceCapture } from './voice/voice-capture';
+import type { ProjectInfo, AppState } from '../../shared/ipc-types';
 import type { AgentType } from '../../shared/agent-types';
-import type { AppState } from '../../shared/ipc-types';
-import type { LayoutNode } from '../../shared/layout-types';
 
 const AUTO_SAVE_INTERVAL_MS = 30_000;
-
-function collectLeafSessionIds(node: LayoutNode): ReadonlyArray<string> {
-  if (node.type === 'leaf') {
-    return [node.sessionId];
-  }
-  return [
-    ...collectLeafSessionIds(node.children[0]),
-    ...collectLeafSessionIds(node.children[1]),
-  ];
-}
-
-async function buildCurrentState(
-  layoutManager: LayoutManager,
-): Promise<Omit<AppState, 'window'>> {
-  const layout = layoutManager.getLayoutTree();
-
-  // Gather running agents from the main process
-  let agents: AppState['agents'] = [];
-  try {
-    const agentInfos = await window.api.agent.list();
-    agents = agentInfos.map((info) => ({
-      type: info.config.type,
-      cwd: info.config.cwd,
-      ...(info.config.label ? { label: info.config.label } : {}),
-    }));
-  } catch (error) {
-    console.error('[State] Failed to list agents for save:', error);
-  }
-
-  return { layout, agents };
-}
-
-async function saveRendererState(layoutManager: LayoutManager): Promise<void> {
-  try {
-    const partial = await buildCurrentState(layoutManager);
-
-    // Load existing state to preserve window bounds (saved by main process)
-    let existingState: AppState | null = null;
-    try {
-      existingState = await window.api.state.load();
-    } catch {
-      // Ignore load errors during save
-    }
-
-    const state: AppState = {
-      window: existingState?.window ?? { x: 0, y: 0, width: 1400, height: 900, isMaximized: false },
-      layout: partial.layout,
-      agents: partial.agents,
-    };
-
-    await window.api.state.save(state);
-  } catch (error) {
-    console.error('[State] Failed to save state:', error);
-  }
-}
-
-async function restoreFromState(
-  agentControls: AgentControls,
-  layoutManager: LayoutManager,
-  savedState: AppState,
-): Promise<boolean> {
-  if (!savedState.layout || savedState.agents.length === 0) {
-    return false;
-  }
-
-  try {
-    // Spawn agents in order, collecting their session IDs
-    const savedLeafSessionIds = collectLeafSessionIds(savedState.layout);
-    const sessionIdMap = new Map<string, string>();
-
-    for (let i = 0; i < savedState.agents.length; i++) {
-      const agentDef = savedState.agents[i];
-      const info = await window.api.agent.spawn({
-        type: agentDef.type,
-        cwd: agentDef.cwd,
-        label: agentDef.label,
-      });
-
-      // Map old session ID to new session ID
-      if (i < savedLeafSessionIds.length) {
-        sessionIdMap.set(savedLeafSessionIds[i], info.sessionId);
-      }
-    }
-
-    // Remap session IDs in the layout tree
-    const remappedLayout = remapSessionIds(savedState.layout, sessionIdMap);
-    layoutManager.restoreLayout(remappedLayout);
-
-    // Update AgentControls to track the restored agents
-    agentControls.markRestored();
-
-    return true;
-  } catch (error) {
-    console.error('[State] Failed to restore state:', error);
-    return false;
-  }
-}
-
-function remapSessionIds(
-  node: LayoutNode,
-  sessionIdMap: ReadonlyMap<string, string>,
-): LayoutNode {
-  if (node.type === 'leaf') {
-    const newSessionId = sessionIdMap.get(node.sessionId);
-    if (newSessionId) {
-      return { ...node, sessionId: newSessionId };
-    }
-    return node;
-  }
-
-  const newFirst = remapSessionIds(node.children[0], sessionIdMap);
-  const newSecond = remapSessionIds(node.children[1], sessionIdMap);
-
-  if (newFirst === node.children[0] && newSecond === node.children[1]) {
-    return node;
-  }
-
-  return { ...node, children: [newFirst, newSecond] };
-}
 
 function main(): void {
   const appEl = document.getElementById('app');
@@ -139,78 +22,405 @@ function main(): void {
     throw new Error('Missing #app element');
   }
 
-  // Apply saved theme on startup
   applyTheme(loadSavedTheme());
+
+  // Custom title bar
+  const titleBar = document.createElement('div');
+  titleBar.className = 'app-titlebar';
+
+  const titleText = document.createElement('span');
+  titleText.className = 'app-titlebar-title';
+  titleText.textContent = 'VibeIDE';
+
+  const titleControls = document.createElement('div');
+  titleControls.className = 'app-titlebar-controls';
+
+  const minimizeBtn = document.createElement('button');
+  minimizeBtn.className = 'app-titlebar-btn minimize';
+  minimizeBtn.addEventListener('click', () => window.api.window.minimize());
+
+  const maximizeBtn = document.createElement('button');
+  maximizeBtn.className = 'app-titlebar-btn maximize';
+  maximizeBtn.addEventListener('click', () => window.api.window.maximize());
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'app-titlebar-btn close';
+  closeBtn.addEventListener('click', () => window.api.window.close());
+
+  titleControls.appendChild(minimizeBtn);
+  titleControls.appendChild(maximizeBtn);
+  titleControls.appendChild(closeBtn);
+  titleBar.appendChild(titleText);
+  titleBar.appendChild(titleControls);
+  appEl.appendChild(titleBar);
+
+  // App body (sidebar + workspace)
+  const appBody = document.createElement('div');
+  appBody.className = 'app-body';
+  appEl.appendChild(appBody);
+
+  // Font size state
+  let terminalFontSize = 14;
+  let uiFontSize = 13;
+
+  // Load font/sidebar settings
+  window.api.settings.load().then((s) => {
+    if (s.terminalFontSize && typeof s.terminalFontSize === 'number') {
+      terminalFontSize = s.terminalFontSize as number;
+    }
+    if (s.uiFontSize && typeof s.uiFontSize === 'number') {
+      uiFontSize = s.uiFontSize as number;
+      document.documentElement.style.setProperty('--font-base', `${uiFontSize}px`);
+    }
+    if (s.sidebarWidth && typeof s.sidebarWidth === 'number') {
+      sidebarEl.style.width = `${s.sidebarWidth}px`;
+    }
+  }).catch(() => {});
 
   // Create sidebar
   const sidebarEl = document.createElement('div');
   sidebarEl.className = 'agent-sidebar';
-  appEl.appendChild(sidebarEl);
+  appBody.appendChild(sidebarEl);
 
-  // Create terminal area
-  const terminalArea = document.createElement('div');
-  terminalArea.className = 'terminal-area';
-  appEl.appendChild(terminalArea);
+  // Sidebar resize handle
+  const sidebarHandle = document.createElement('div');
+  sidebarHandle.className = 'sidebar-resize-handle';
+  sidebarEl.appendChild(sidebarHandle);
 
-  // Initialize managers
-  const terminalManager = new TerminalManager();
+  sidebarHandle.addEventListener('mousedown', (startEvent) => {
+    startEvent.preventDefault();
+    const startX = startEvent.clientX;
+    const startWidth = sidebarEl.offsetWidth;
 
-  const layoutManager = new LayoutManager(
-    terminalArea,
-    (sessionId, container) => terminalManager.createTerminal(sessionId, container),
-    (sessionId) => terminalManager.removeTerminal(sessionId),
-  );
-  layoutManager.setFitAllCallback(() => terminalManager.fitAll());
+    const onMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(140, Math.min(500, startWidth + (e.clientX - startX)));
+      sidebarEl.style.width = `${newWidth}px`;
+    };
 
-  const agentList = new AgentList(sidebarEl, {
-    onAgentSelect: (_agentId: string, sessionId: string) => {
-      terminalManager.focusTerminal(sessionId);
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      // Persist sidebar width
+      const width = sidebarEl.offsetWidth;
+      window.api.settings.load().then((s) => {
+        window.api.settings.save({ ...s, sidebarWidth: width });
+      }).catch(() => {});
+      // Refit terminals
+      const ws = workspaceSwitcher.getActiveWorkspace();
+      if (ws) ws.terminalManager.fitAll();
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+
+  // Create workspace host (holds all project workspace containers)
+  const workspaceHost = document.createElement('div');
+  workspaceHost.className = 'workspace-host';
+  appBody.appendChild(workspaceHost);
+
+  // Empty workspace state
+  const emptyState = document.createElement('div');
+  emptyState.className = 'workspace-empty-state';
+  emptyState.innerHTML = `
+    <p>No project open</p>
+    <p><kbd>Ctrl+Shift+O</kbd> to add a project</p>
+    <p><kbd>Ctrl+Shift+P</kbd> for command palette</p>
+  `;
+  workspaceHost.appendChild(emptyState);
+
+  // Hint bar at bottom
+  const hintBar = document.createElement('div');
+  hintBar.className = 'workspace-hint-bar';
+  hintBar.innerHTML = `
+    <span class="hint-item"><kbd>Ctrl+Shift+P</kbd> Commands</span>
+    <span class="hint-item"><kbd>Ctrl+Shift+D</kbd> Split</span>
+    <span class="hint-item"><kbd>Ctrl+Shift+W</kbd> Close</span>
+    <span class="hint-item"><kbd>Ctrl+B</kbd> Sidebar</span>
+    <span class="hint-item"><kbd>Ctrl+Shift+G</kbd> Files</span>
+  `;
+  appEl.appendChild(hintBar);
+
+  // Workspace switcher
+  const workspaceSwitcher = new WorkspaceSwitcher(workspaceHost, (projectId) => {
+    emptyState.style.display = projectId ? 'none' : '';
+    projectSidebar.setActiveProject(projectId);
+    // Update agents in sidebar for the active workspace
+    if (projectId) {
+      const workspace = workspaceSwitcher.getWorkspace(projectId);
+      if (workspace) {
+        const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+        projectSidebar.updateAgents(projectId, agents);
+      }
+    }
+  });
+
+  // Project sidebar
+  const projectSidebar = new ProjectSidebar(sidebarEl, {
+    onProjectSelect: async (project: ProjectInfo) => {
+      await workspaceSwitcher.switchTo(project);
+      // After switching, update the agent list for this project
+      const workspace = workspaceSwitcher.getWorkspace(project.id);
+      if (workspace) {
+        const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+        projectSidebar.updateAgents(project.id, agents);
+      }
     },
-    onAgentSpawn: (type: AgentType) => {
-      agentControls.spawnAgent(type);
+    onProjectAdd: async () => {
+      const dirPath = await window.api.project.pickDirectory();
+      if (!dirPath) return;
+
+      try {
+        const project = await window.api.project.create({ path: dirPath });
+        await refreshProjectList();
+        await workspaceSwitcher.switchTo(project);
+        const workspace = workspaceSwitcher.getWorkspace(project.id);
+        if (workspace) {
+          const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+          projectSidebar.updateAgents(project.id, agents);
+        }
+      } catch (error) {
+        console.error('[Main] Failed to create project:', error);
+      }
+    },
+    onProjectRemove: async (projectId: string) => {
+      try {
+        await workspaceSwitcher.closeWorkspace(projectId);
+        await window.api.project.remove(projectId);
+        await refreshProjectList();
+
+        // Auto-switch to next available project
+        if (workspaceSwitcher.getActiveProjectId() === null) {
+          const projects = await window.api.project.list();
+          if (projects.length > 0) {
+            await workspaceSwitcher.switchTo(projects[0]);
+            const workspace = workspaceSwitcher.getWorkspace(projects[0].id);
+            if (workspace) {
+              const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+              projectSidebar.updateAgents(projects[0].id, agents);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Main] Failed to remove project:', error);
+      }
+    },
+    onProjectRename: async (projectId: string, newName: string) => {
+      try {
+        await window.api.project.update({ id: projectId, name: newName });
+        await refreshProjectList();
+      } catch (error) {
+        console.error('[Main] Failed to rename project:', error);
+      }
+    },
+    onProjectPin: async (projectId: string, pinned: boolean) => {
+      try {
+        await window.api.project.update({ id: projectId, pinned });
+        await refreshProjectList();
+      } catch (error) {
+        console.error('[Main] Failed to pin/unpin project:', error);
+      }
+    },
+    onAgentSpawn: async (projectId: string, type: AgentType) => {
+      // Ensure we're on the right project
+      const projects = await window.api.project.list();
+      const project = projects.find((p: ProjectInfo) => p.id === projectId);
+      if (!project) return;
+
+      if (workspaceSwitcher.getActiveProjectId() !== projectId) {
+        await workspaceSwitcher.switchTo(project);
+      }
+
+      const workspace = workspaceSwitcher.getWorkspace(projectId);
+      if (workspace) {
+        await workspace.spawnAgent(type);
+        const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+        projectSidebar.updateAgents(projectId, agents);
+      }
+    },
+    onAgentSelect: (_agentId: string, sessionId: string) => {
+      const workspace = workspaceSwitcher.getActiveWorkspace();
+      if (workspace) {
+        workspace.focusTerminal(sessionId);
+      }
     },
   });
 
-  const agentControls = new AgentControls(terminalManager, layoutManager, agentList);
-  agentControls.setupEventListeners();
+  // Agent event listeners
+  const unsubStatus = window.api.agent.onStatus((event) => {
+    workspaceSwitcher.handleAgentStatus(event.agentId, event.status);
+    projectSidebar.updateAgentStatus(event.agentId, event.status);
+
+    // Desktop notification for needs-input on non-active projects
+    if (event.status === 'needs-input') {
+      const activeId = workspaceSwitcher.getActiveProjectId();
+      for (const ws of getAllWorkspaces()) {
+        if (ws.hasAgent(event.agentId) && ws.projectId !== activeId) {
+          window.api.notify.show({
+            title: 'Agent needs input',
+            body: `An agent in another project is waiting for your response`,
+            urgency: 'critical',
+          });
+          break;
+        }
+      }
+    }
+  });
+
+  const unsubExit = window.api.agent.onExit((event) => {
+    workspaceSwitcher.handleAgentExit(event.agentId, event.exitCode);
+    projectSidebar.updateAgentStatus(event.agentId, 'stopped');
+
+    // Desktop notification for agent completion/error
+    const activeId = workspaceSwitcher.getActiveProjectId();
+    for (const ws of getAllWorkspaces()) {
+      if (ws.hasAgent(event.agentId) && ws.projectId !== activeId) {
+        const label = event.exitCode === 0 ? 'completed' : `exited with code ${event.exitCode}`;
+        window.api.notify.show({
+          title: `Agent ${label}`,
+          body: `An agent in another project has ${label}`,
+          urgency: event.exitCode === 0 ? 'low' : 'normal',
+        });
+        break;
+      }
+    }
+  });
 
   // Command palette
   const commandPalette = new CommandPalette();
   commandPalette.register({
+    id: 'new-project',
+    label: 'New Project',
+    shortcut: 'Ctrl+Shift+O',
+    action: () => projectSidebar['callbacks'].onProjectAdd(),
+  });
+  commandPalette.register({
     id: 'new-shell',
-    label: 'New Shell',
+    label: 'New Shell in Project',
     shortcut: 'Ctrl+Shift+N',
-    action: () => agentControls.spawnAgent('shell'),
+    action: () => spawnInActiveProject('shell'),
   });
   commandPalette.register({
     id: 'new-claude',
-    label: 'New Claude Agent',
+    label: 'New Claude Agent in Project',
     shortcut: 'Ctrl+Shift+1',
-    action: () => agentControls.spawnAgent('claude'),
+    action: () => spawnInActiveProject('claude'),
   });
   commandPalette.register({
     id: 'new-gemini',
-    label: 'New Gemini Agent',
+    label: 'New Gemini Agent in Project',
     shortcut: 'Ctrl+Shift+2',
-    action: () => agentControls.spawnAgent('gemini'),
+    action: () => spawnInActiveProject('gemini'),
   });
   commandPalette.register({
     id: 'new-codex',
-    label: 'New Codex Agent',
+    label: 'New Codex Agent in Project',
     shortcut: 'Ctrl+Shift+3',
-    action: () => agentControls.spawnAgent('codex'),
+    action: () => spawnInActiveProject('codex'),
   });
   commandPalette.register({
     id: 'split-v',
     label: 'Split Vertical',
     shortcut: 'Ctrl+Shift+D',
-    action: () => agentControls.spawnAgent('shell', 'vertical'),
+    action: () => spawnInActiveProject('shell', 'vertical'),
   });
   commandPalette.register({
     id: 'split-h',
     label: 'Split Horizontal',
     shortcut: 'Ctrl+Shift+E',
-    action: () => agentControls.spawnAgent('shell', 'horizontal'),
+    action: () => spawnInActiveProject('shell', 'horizontal'),
+  });
+  // File viewer
+  const fileViewer = new FileViewer();
+
+  commandPalette.register({
+    id: 'file-viewer',
+    label: 'Open File Viewer',
+    shortcut: 'Ctrl+Shift+G',
+    action: () => {
+      const workspace = workspaceSwitcher.getActiveWorkspace();
+      if (workspace) {
+        fileViewer.toggle(workspace.projectPath);
+      }
+    },
+  });
+
+  // Voice input
+  const voiceCapture = new VoiceCapture(
+    (text) => {
+      console.log(`[Voice] Transcript received: "${text}"`);
+      // Type transcribed text into the focused terminal
+      const workspace = workspaceSwitcher.getActiveWorkspace();
+      if (!workspace) { console.log('[Voice] No active workspace'); return; }
+      const leafId = workspace.layoutManager.getFocusedLeafId();
+      if (!leafId) { console.log('[Voice] No focused leaf'); return; }
+      const leafEl = document.querySelector(`[data-leaf-id="${leafId}"]`) as HTMLElement | null;
+      const sessionId = leafEl?.dataset.sessionId ?? null;
+      if (sessionId) {
+        console.log(`[Voice] Writing to session ${sessionId}`);
+        window.api.pty.write({ sessionId, data: text });
+      } else {
+        console.log('[Voice] No sessionId on leaf');
+      }
+    },
+    (_state) => {
+      // State change callback — indicator handles UI
+    },
+  );
+
+  // Load voice settings from disk
+  voiceCapture.ensureSettingsLoaded();
+
+  commandPalette.register({
+    id: 'voice-toggle',
+    label: 'Toggle Voice Input',
+    shortcut: 'Ctrl+Shift+M (hold)',
+    action: () => voiceCapture.toggle(),
+  });
+  commandPalette.register({
+    id: 'voice-setup',
+    label: 'Voice Input: Configure',
+    action: () => voiceCapture.showSetup(),
+  });
+  commandPalette.register({
+    id: 'voice-mode-command',
+    label: 'Voice Mode: Command (symbols + case conversion)',
+    action: () => voiceCapture.setPostProcessMode('command'),
+  });
+  commandPalette.register({
+    id: 'voice-mode-natural',
+    label: 'Voice Mode: Natural (raw transcription)',
+    action: () => voiceCapture.setPostProcessMode('natural'),
+  });
+  commandPalette.register({
+    id: 'voice-mode-code',
+    label: 'Voice Mode: Code (symbols + abbreviations)',
+    action: () => voiceCapture.setPostProcessMode('code'),
+  });
+
+  // Layout preset commands
+  for (const preset of LAYOUT_PRESETS) {
+    commandPalette.register({
+      id: `preset-${preset.id}`,
+      label: `Layout: ${preset.label}`,
+      shortcut: preset.shortcut,
+      action: () => {
+        applyPresetToActive(preset.id).catch((err) => {
+          console.error('[Main] Preset failed:', err);
+        });
+      },
+    });
+  }
+
+  commandPalette.register({
+    id: 'toggle-sidebar',
+    label: 'Toggle Sidebar',
+    shortcut: 'Ctrl+B',
+    action: () => projectSidebar.toggleCollapse(),
   });
   commandPalette.register({
     id: 'close-pane',
@@ -224,90 +434,295 @@ function main(): void {
     shortcut: 'Ctrl+Shift+F',
     action: () => toggleSearchOnFocused(),
   });
+  const themeEntries: Array<{ id: string; label: string }> = [
+    { id: 'tokyoNight', label: 'Tokyo Night' },
+    { id: 'tokyoNightLight', label: 'Tokyo Night Light' },
+    { id: 'solarizedDark', label: 'Solarized Dark' },
+    { id: 'dracula', label: 'Dracula' },
+    { id: 'nord', label: 'Nord' },
+    { id: 'gruvboxDark', label: 'Gruvbox Dark' },
+    { id: 'oneDark', label: 'One Dark' },
+    { id: 'catppuccinMocha', label: 'Catppuccin Mocha' },
+    { id: 'monokai', label: 'Monokai' },
+  ];
+  for (const theme of themeEntries) {
+    commandPalette.register({
+      id: `theme-${theme.id}`,
+      label: `Theme: ${theme.label}`,
+      action: () => switchTheme(theme.id),
+    });
+  }
+
+  // Font size commands
+  function changeTerminalFontSize(delta: number): void {
+    terminalFontSize = Math.max(8, Math.min(28, terminalFontSize + delta));
+    for (const ws of workspaceSwitcher.getAllWorkspaces()) {
+      ws.terminalManager.setDefaultFontSize(terminalFontSize);
+      ws.terminalManager.setFontSizeAll(terminalFontSize);
+    }
+    window.api.settings.load().then((s) => {
+      window.api.settings.save({ ...s, terminalFontSize });
+    }).catch(() => {});
+  }
+
+  function changeUIFontSize(delta: number): void {
+    uiFontSize = Math.max(10, Math.min(20, uiFontSize + delta));
+    document.documentElement.style.setProperty('--font-base', `${uiFontSize}px`);
+    document.documentElement.style.setProperty('--font-sm', `${uiFontSize - 2}px`);
+    document.documentElement.style.setProperty('--font-md', `${uiFontSize + 1}px`);
+    document.documentElement.style.setProperty('--font-xs', `${uiFontSize - 3}px`);
+    window.api.settings.load().then((s) => {
+      window.api.settings.save({ ...s, uiFontSize });
+    }).catch(() => {});
+  }
+
   commandPalette.register({
-    id: 'theme-tokyo-night',
-    label: 'Theme: Tokyo Night',
-    action: () => switchTheme('tokyoNight'),
+    id: 'terminal-font-increase',
+    label: 'Terminal: Increase Font Size',
+    shortcut: 'Ctrl++',
+    action: () => changeTerminalFontSize(1),
   });
   commandPalette.register({
-    id: 'theme-tokyo-night-light',
-    label: 'Theme: Tokyo Night Light',
-    action: () => switchTheme('tokyoNightLight'),
+    id: 'terminal-font-decrease',
+    label: 'Terminal: Decrease Font Size',
+    shortcut: 'Ctrl+-',
+    action: () => changeTerminalFontSize(-1),
   });
   commandPalette.register({
-    id: 'theme-solarized-dark',
-    label: 'Theme: Solarized Dark',
-    action: () => switchTheme('solarizedDark'),
+    id: 'ui-font-increase',
+    label: 'UI: Increase Font Size',
+    action: () => changeUIFontSize(1),
+  });
+  commandPalette.register({
+    id: 'ui-font-decrease',
+    label: 'UI: Decrease Font Size',
+    action: () => changeUIFontSize(-1),
+  });
+  commandPalette.register({
+    id: 'font-reset',
+    label: 'Reset All Font Sizes',
+    action: () => {
+      terminalFontSize = 14;
+      uiFontSize = 13;
+      changeTerminalFontSize(0);
+      changeUIFontSize(0);
+    },
   });
 
-  // Keybindings
+  // Keybinding action map — maps definition IDs to actions
+  const keybindingActions: Record<string, { action: () => void; holdUp?: () => void }> = {
+    'command-palette': { action: () => commandPalette.toggle() },
+    'toggle-sidebar': { action: () => projectSidebar.toggleCollapse() },
+    'file-viewer': {
+      action: () => {
+        const ws = workspaceSwitcher.getActiveWorkspace();
+        if (ws) fileViewer.toggle(ws.projectPath);
+      },
+    },
+    'add-project': { action: () => projectSidebar['callbacks'].onProjectAdd() },
+    'new-shell': { action: () => spawnInActiveProject('shell') },
+    'split-vertical': { action: () => spawnInActiveProject('shell', 'vertical') },
+    'split-horizontal': { action: () => spawnInActiveProject('shell', 'horizontal') },
+    'close-pane': { action: () => closeFocused() },
+    'search-terminal': { action: () => toggleSearchOnFocused() },
+    'voice-push-to-talk': {
+      action: () => voiceCapture.startListening(),
+      holdUp: () => voiceCapture.stopListening(),
+    },
+    'font-increase': { action: () => changeTerminalFontSize(1) },
+    'font-decrease': { action: () => changeTerminalFontSize(-1) },
+    'zoom-in': { action: () => window.api.window.zoomIn() },
+    'zoom-out': { action: () => window.api.window.zoomOut() },
+    'zoom-reset': { action: () => window.api.window.zoomReset() },
+  };
+
+  // Keybinding manager — registers from config, re-registers on change
   const keybindings = new KeybindingManager();
-  keybindings.register('ctrl+shift+p', () => commandPalette.toggle());
-  keybindings.register('ctrl+shift+n', () => agentControls.spawnAgent('shell'));
-  keybindings.register('ctrl+shift+d', () => agentControls.spawnAgent('shell', 'vertical'));
-  keybindings.register('ctrl+shift+e', () => agentControls.spawnAgent('shell', 'horizontal'));
-  keybindings.register('ctrl+shift+w', () => closeFocused());
-  keybindings.register('ctrl+shift+f', () => toggleSearchOnFocused());
+
+  function registerAllKeybindings(): void {
+    keybindings.clearAll();
+    const overrides = loadUserKeybindings();
+
+    for (const def of KEYBINDING_DEFAULTS) {
+      const key = getEffectiveKey(def.id, overrides);
+      if (!key) continue;
+      const binding = keybindingActions[def.id];
+      if (!binding) continue;
+
+      console.log(`[Keybindings] Registering ${def.id} → "${key}" (hold=${!!def.holdMode})`);
+
+      if (def.holdMode && binding.holdUp) {
+        keybindings.registerHold(key, binding.action, binding.holdUp);
+      } else {
+        keybindings.register(key, binding.action);
+      }
+    }
+  }
+
+  // Load saved keybindings from file, then register
+  loadUserKeybindingsAsync().then(() => {
+    registerAllKeybindings();
+  });
+
+  // Keybinding editor
+  const keybindingEditor = new KeybindingEditor(() => {
+    registerAllKeybindings();
+  });
+
+  commandPalette.register({
+    id: 'keybinding-editor',
+    label: 'Keyboard Shortcuts',
+    shortcut: 'Ctrl+K Ctrl+S',
+    action: () => keybindingEditor.toggle(),
+  });
+
+  function getAllWorkspaces() {
+    return workspaceSwitcher.getAllWorkspaces();
+  }
+
+  async function applyPresetToActive(presetId: string): Promise<void> {
+    const workspace = workspaceSwitcher.getActiveWorkspace();
+    if (!workspace) {
+      console.warn('[Preset] No active workspace');
+      return;
+    }
+    const preset = LAYOUT_PRESETS.find((p) => p.id === presetId);
+    if (!preset) {
+      console.warn('[Preset] Preset not found:', presetId);
+      return;
+    }
+    const success = await workspace.applyPreset(preset);
+    if (success) {
+      const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+      projectSidebar.updateAgents(workspace.projectId, agents);
+    }
+  }
+
+  async function spawnInActiveProject(type: AgentType, direction?: 'horizontal' | 'vertical'): Promise<void> {
+    const workspace = workspaceSwitcher.getActiveWorkspace();
+    if (!workspace) return;
+    await workspace.spawnAgent(type, direction);
+    const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+    projectSidebar.updateAgents(workspace.projectId, agents);
+  }
 
   function closeFocused(): void {
-    const leafId = layoutManager.getFocusedLeafId();
+    const workspace = workspaceSwitcher.getActiveWorkspace();
+    if (!workspace) return;
+    const leafId = workspace.layoutManager.getFocusedLeafId();
     if (leafId) {
-      layoutManager.closePane(leafId);
+      workspace.layoutManager.closePane(leafId);
     }
   }
 
   function toggleSearchOnFocused(): void {
-    const leafId = layoutManager.getFocusedLeafId();
+    const workspace = workspaceSwitcher.getActiveWorkspace();
+    if (!workspace) return;
+    const leafId = workspace.layoutManager.getFocusedLeafId();
     if (!leafId) return;
     const leafEl = document.querySelector(`[data-leaf-id="${leafId}"]`) as HTMLElement | null;
     const sessionId = leafEl?.dataset.sessionId ?? null;
     if (sessionId) {
-      terminalManager.toggleSearchOnFocused(sessionId);
+      workspace.terminalManager.toggleSearchOnFocused(sessionId);
     }
   }
 
   function switchTheme(name: string): void {
     applyTheme(name);
-    terminalManager.setThemeAll(name);
+    workspaceSwitcher.setThemeAll(name);
   }
 
-  // Attempt to restore saved state; fall back to spawning a default shell
-  initializeFromState(agentControls, layoutManager);
+  async function refreshProjectList(): Promise<void> {
+    try {
+      const projects = await window.api.project.list();
+      projectSidebar.setProjects(projects);
+    } catch (error) {
+      console.error('[Main] Failed to refresh project list:', error);
+    }
+  }
+
+  async function saveGlobalState(): Promise<void> {
+    try {
+      await workspaceSwitcher.saveAllStates();
+
+      let existingState: AppState | null = null;
+      try {
+        existingState = await window.api.state.load();
+      } catch {
+        // Ignore
+      }
+
+      const state: AppState = {
+        window: existingState?.window ?? { x: 0, y: 0, width: 1400, height: 900, isMaximized: false },
+        activeProjectId: workspaceSwitcher.getActiveProjectId(),
+        sidebarCollapsed: projectSidebar.isCollapsed(),
+        layout: null,
+        agents: [],
+      };
+      await window.api.state.save(state);
+    } catch (error) {
+      console.error('[Main] Failed to save global state:', error);
+    }
+  }
+
+  // Initialize
+  initializeFromState(workspaceSwitcher, projectSidebar, refreshProjectList).then(() => {
+    // Restore sidebar collapsed state after initialization
+    window.api.state.load().then((state) => {
+      if (state?.sidebarCollapsed) {
+        projectSidebar.setCollapsed(true);
+      }
+    }).catch(() => {});
+  });
 
   // Periodic auto-save
   const autoSaveTimer = setInterval(() => {
-    saveRendererState(layoutManager);
+    saveGlobalState();
   }, AUTO_SAVE_INTERVAL_MS);
 
   // Save state on window unload
   window.addEventListener('beforeunload', () => {
     clearInterval(autoSaveTimer);
-    // Use synchronous-style save via sendBeacon is not available for IPC,
-    // so fire-and-forget the async save
-    saveRendererState(layoutManager);
+    saveGlobalState();
   });
 }
 
 async function initializeFromState(
-  agentControls: AgentControls,
-  layoutManager: LayoutManager,
+  workspaceSwitcher: WorkspaceSwitcher,
+  projectSidebar: ProjectSidebar,
+  refreshProjectList: () => Promise<void>,
 ): Promise<void> {
   try {
+    await refreshProjectList();
+
     const savedState = await window.api.state.load();
-    if (savedState) {
-      const restored = await restoreFromState(agentControls, layoutManager, savedState);
-      if (restored) {
+    const projects = await window.api.project.list();
+
+    if (savedState?.activeProjectId) {
+      const activeProject = projects.find((p: ProjectInfo) => p.id === savedState.activeProjectId);
+      if (activeProject) {
+        await workspaceSwitcher.switchTo(activeProject);
+        const workspace = workspaceSwitcher.getWorkspace(activeProject.id);
+        if (workspace) {
+          const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+          projectSidebar.updateAgents(activeProject.id, agents);
+        }
         return;
       }
     }
-  } catch (error) {
-    console.error('[State] Failed to load saved state:', error);
-  }
 
-  // Fallback: spawn default shell
-  agentControls.spawnAgent('shell').catch((error) => {
-    console.error('Failed to spawn initial shell:', error);
-  });
+    // If there's exactly one project, auto-switch to it
+    if (projects.length === 1) {
+      await workspaceSwitcher.switchTo(projects[0]);
+      const workspace = workspaceSwitcher.getWorkspace(projects[0].id);
+      if (workspace) {
+        const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+        projectSidebar.updateAgents(projects[0].id, agents);
+      }
+    }
+  } catch (error) {
+    console.error('[Main] Failed to initialize from state:', error);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', main);

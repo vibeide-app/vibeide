@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import type { AppState } from '../../shared/ipc-types';
+import type { AppState, ProjectWorkspaceState } from '../../shared/ipc-types';
 import type { LayoutNode } from '../../shared/layout-types';
 import type { AgentType } from '../../shared/agent-types';
 
@@ -55,6 +55,16 @@ function isValidAppState(data: unknown): data is AppState {
     return false;
   }
 
+  // Validate activeProjectId (nullable string)
+  if (s.activeProjectId !== undefined && s.activeProjectId !== null && typeof s.activeProjectId !== 'string') {
+    return false;
+  }
+
+  // Validate sidebarCollapsed (optional boolean)
+  if (s.sidebarCollapsed !== undefined && typeof s.sidebarCollapsed !== 'boolean') {
+    return false;
+  }
+
   // Validate layout (nullable)
   if (s.layout !== null && !isValidLayoutNode(s.layout)) return false;
 
@@ -74,10 +84,12 @@ function isValidAppState(data: unknown): data is AppState {
 export class StateManager {
   private readonly stateDir: string;
   private readonly statePath: string;
+  private readonly workspacesDir: string;
 
   constructor() {
     this.stateDir = path.join(os.homedir(), '.vibeide');
     this.statePath = path.join(this.stateDir, 'state.json');
+    this.workspacesDir = path.join(this.stateDir, 'workspaces');
   }
 
   getStatePath(): string {
@@ -116,6 +128,40 @@ export class StateManager {
       fs.renameSync(tmpPath, this.statePath);
     } catch (error) {
       console.error('[StateManager] Failed to save state:', error);
+    }
+  }
+
+  loadProjectState(projectId: string): ProjectWorkspaceState | null {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(projectId)) return null;
+
+    try {
+      const filePath = path.join(this.workspacesDir, `${projectId}.json`);
+      if (!fs.existsSync(filePath)) return null;
+
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+
+      const s = parsed as Record<string, unknown>;
+      if (s.projectId !== projectId) return null;
+
+      return parsed as ProjectWorkspaceState;
+    } catch (error) {
+      console.error('[StateManager] Failed to load project state:', error);
+      return null;
+    }
+  }
+
+  saveProjectState(state: { projectId: string; layout: unknown; agents: unknown[] }): void {
+    try {
+      fs.mkdirSync(this.workspacesDir, { recursive: true });
+      const filePath = path.join(this.workspacesDir, `${state.projectId}.json`);
+      const tmpPath = `${filePath}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, filePath);
+    } catch (error) {
+      console.error('[StateManager] Failed to save project state:', error);
     }
   }
 }
