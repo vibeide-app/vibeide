@@ -14,6 +14,7 @@ export interface ProjectSidebarCallbacks {
   readonly onGitChangesClick: (projectPath: string) => void;
   readonly onFileExplorerClick: (projectPath: string) => void;
   readonly onNotificationClick: (projectId: string, agentId: string, sessionId: string) => void;
+  readonly onLaunchWorkspace?: () => void;
 }
 
 interface ProjectEntry {
@@ -223,7 +224,18 @@ export class ProjectSidebar {
       this.callbacks.onProjectAdd();
     });
 
+    const launchBtn = document.createElement('button');
+    launchBtn.className = 'sidebar-launch-btn';
+    launchBtn.textContent = '\u25B6';
+    launchBtn.title = 'Launch Workspace';
+    launchBtn.setAttribute('aria-label', 'Launch Workspace');
+    launchBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.callbacks.onLaunchWorkspace?.();
+    });
+
     header.appendChild(title);
+    header.appendChild(launchBtn);
     header.appendChild(addBtn);
     this.container.appendChild(header);
 
@@ -664,14 +676,29 @@ export class ProjectSidebar {
     const agentTypes: Array<{ type: AgentType; label: string }> = [
       { type: 'shell', label: 'Shell' },
       { type: 'claude', label: 'Claude Code' },
+      { type: 'aider', label: 'Aider' },
       { type: 'gemini', label: 'Gemini CLI' },
-      { type: 'codex', label: 'Codex' },
+      { type: 'codex', label: 'Codex CLI' },
+      { type: 'opencode', label: 'OpenCode' },
+      { type: 'cline', label: 'Cline CLI' },
+      { type: 'copilot', label: 'Copilot CLI' },
+      { type: 'amp', label: 'Amp' },
+      { type: 'continue', label: 'Continue' },
+      { type: 'cursor', label: 'Cursor CLI' },
+      { type: 'crush', label: 'Crush' },
+      { type: 'qwen', label: 'Qwen Code' },
     ];
 
     for (const { type, label } of agentTypes) {
       const item = document.createElement('div');
       item.className = 'dropdown-item';
-      item.textContent = label;
+
+      const icon = createAgentIcon(type, 14);
+      const text = document.createElement('span');
+      text.textContent = label;
+
+      item.appendChild(icon);
+      item.appendChild(text);
       item.addEventListener('click', (e) => {
         e.stopPropagation();
         this.callbacks.onAgentSpawn(projectId, type);

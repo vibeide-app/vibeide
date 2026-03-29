@@ -172,6 +172,9 @@ function main(): void {
     }
   });
 
+  // Launch Workspace dialog (instantiated early so sidebar can reference it)
+  const launchWorkspaceDialog = new LaunchWorkspaceDialog();
+
   // Project sidebar
   const projectSidebar = new ProjectSidebar(sidebarEl, {
     onProjectSelect: async (project: ProjectInfo) => {
@@ -283,6 +286,22 @@ function main(): void {
           workspace.layoutManager.focusLeaf(leaf.id);
         }
       }
+    },
+    onLaunchWorkspace: () => {
+      launchWorkspaceDialog.show(async (result) => {
+        await workspaceSwitcher.switchTo(result.project);
+        projectSidebar.setActiveProject(result.project.id);
+        await refreshProjectList();
+        const preset = buildDynamicPreset(result.agents, result.layout);
+        const workspace = workspaceSwitcher.getActiveWorkspace();
+        if (workspace) {
+          const success = await workspace.applyPreset(preset);
+          if (success) {
+            const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
+            projectSidebar.updateAgents(result.project.id, agents);
+          }
+        }
+      });
     },
   });
 
@@ -514,8 +533,6 @@ function main(): void {
     },
   });
 
-  // Launch Workspace dialog
-  const launchWorkspaceDialog = new LaunchWorkspaceDialog();
   commandPalette.register({
     id: 'launch-workspace',
     label: 'Launch Workspace',

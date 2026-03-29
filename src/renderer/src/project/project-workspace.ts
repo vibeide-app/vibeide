@@ -152,6 +152,18 @@ export class ProjectWorkspace {
       // Spawn agents for each slot
       const sessionIds: string[] = [];
       for (const slot of preset.slots) {
+        // Check if agent is installed before spawning (skip shell)
+        if (slot.type !== 'shell') {
+          const installInfo = AGENT_INSTALL_INFO[slot.type];
+          if (installInfo) {
+            const check = await window.api.agent.checkInstalled(installInfo.command);
+            if (!check.installed) {
+              showAgentInstallDialog(slot.type, installInfo);
+              continue; // Skip this agent, proceed with others
+            }
+          }
+        }
+
         const info: AgentInfo = await window.api.agent.spawn({
           type: slot.type,
           projectId: this.projectId,
@@ -162,7 +174,7 @@ export class ProjectWorkspace {
         // Check for IPC error response
         if ('error' in (info as unknown as Record<string, unknown>)) {
           console.error('[ProjectWorkspace] Agent spawn returned error:', info);
-          return false;
+          continue; // Skip this agent, proceed with others
         }
 
         const statusBar = new AgentStatusBar(info, {
