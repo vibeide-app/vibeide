@@ -567,7 +567,6 @@ function main(): void {
 
   const voiceCapture = new VoiceCapture(
     (text) => {
-      console.log(`[Voice] Transcript (${voiceMode}): "${text}"`);
       if (voiceMode === 'command') {
         const result = voiceRouter.routeCommand(text);
         if (result.matched) {
@@ -798,8 +797,6 @@ function main(): void {
       if (!key) continue;
       const binding = keybindingActions[def.id];
       if (!binding) continue;
-
-      console.log(`[Keybindings] Registering ${def.id} → "${key}" (hold=${!!def.holdMode})`);
 
       if (def.holdMode && binding.holdUp) {
         keybindings.registerHold(key, binding.action, binding.holdUp);

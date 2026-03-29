@@ -9,6 +9,7 @@ import type { PtyManager } from '../pty/pty-manager';
 import type { StateManager } from '../state/state-manager';
 import type { ProjectManager } from '../project/project-manager';
 import type { NotificationManager } from '../notification/notification-manager';
+import { saveScrollback, loadScrollback, deleteScrollback } from '../scrollback-store';
 import {
   validateSessionId,
   validateWriteRequest,
@@ -776,7 +777,6 @@ export function registerIpcHandlers(
   });
 
   // Scrollback persistence
-  const { saveScrollback, loadScrollback, deleteScrollback } = require('../scrollback-store');
 
   ipcMain.handle(IPC_CHANNELS.SCROLLBACK_SAVE, async (_event, raw: unknown) => {
     if (!raw || typeof raw !== 'object') return;

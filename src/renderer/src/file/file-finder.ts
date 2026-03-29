@@ -197,6 +197,8 @@ export class FileFinder {
     results.forEach((result, index) => {
       const item = document.createElement('div');
       item.className = `ff-item${index === this.selectedIndex ? ' selected' : ''}`;
+      item.setAttribute('tabindex', '-1');
+      item.setAttribute('role', 'option');
 
       // Split path into directory and filename
       const lastSlash = result.path.lastIndexOf('/');

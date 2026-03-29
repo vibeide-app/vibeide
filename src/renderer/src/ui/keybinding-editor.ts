@@ -67,6 +67,9 @@ export class KeybindingEditor {
 
     const panel = document.createElement('div');
     panel.className = 'keybinding-editor-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Keyboard Shortcuts');
+    panel.setAttribute('aria-modal', 'true');
 
     const header = document.createElement('div');
     header.className = 'keybinding-editor-header';
@@ -78,6 +81,7 @@ export class KeybindingEditor {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'file-viewer-close';
     closeBtn.textContent = '\u00D7';
+    closeBtn.setAttribute('aria-label', 'Close keyboard shortcuts');
     closeBtn.addEventListener('click', () => this.hide());
 
     header.appendChild(title);

@@ -101,6 +101,7 @@ class ToastManager {
   private createToastElement(id: number, options: ToastOptions): HTMLElement {
     const toast = document.createElement('div');
     toast.className = `toast toast--${options.event}`;
+    toast.setAttribute('role', 'alert');
 
     // Color dot
     const dot = document.createElement('span');
@@ -137,9 +138,17 @@ class ToastManager {
     const close = document.createElement('button');
     close.className = 'toast-close';
     close.textContent = '\u00d7';
+    close.setAttribute('aria-label', 'Dismiss notification');
     close.addEventListener('click', (e) => {
       e.stopPropagation();
       this.dismiss(id);
+    });
+    close.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.dismiss(id);
+      }
     });
 
     toast.appendChild(dot);

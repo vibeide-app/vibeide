@@ -249,6 +249,8 @@ export class CommandPalette {
   private renderCommandItem(container: HTMLElement, result: ScoredCommand, index: number): void {
     const item = document.createElement('div');
     item.className = `command-item${index === this.selectedIndex ? ' selected' : ''}`;
+    item.setAttribute('tabindex', '-1');
+    item.setAttribute('role', 'option');
 
     if (this.filterText && result.matchIndices.length > 0) {
       const label = highlightMatches(result.command.label, result.matchIndices);
@@ -316,7 +318,9 @@ export class CommandPalette {
     if (!this.overlayEl) return;
     const items = this.overlayEl.querySelectorAll('.command-item');
     items.forEach((item, index) => {
-      item.classList.toggle('selected', index === this.selectedIndex);
+      const isSelected = index === this.selectedIndex;
+      item.classList.toggle('selected', isSelected);
+      if (isSelected) (item as HTMLElement).focus();
     });
   }
 

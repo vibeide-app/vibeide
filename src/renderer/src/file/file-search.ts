@@ -139,6 +139,8 @@ export class FileSearch {
         for (const result of fileResults) {
           const row = document.createElement('div');
           row.className = `fsearch-result${isFirst ? ' selected' : ''}`;
+          row.setAttribute('tabindex', '-1');
+          row.setAttribute('role', 'option');
           isFirst = false;
 
           const lineNum = document.createElement('span');

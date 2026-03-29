@@ -60,6 +60,9 @@ export class NotificationPreferences {
 
     const card = document.createElement('div');
     card.className = 'notif-prefs-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-label', 'Notification Preferences');
+    card.setAttribute('aria-modal', 'true');
 
     // Header
     const header = document.createElement('div');
@@ -72,6 +75,7 @@ export class NotificationPreferences {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'file-viewer-close';
     closeBtn.textContent = '\u00d7';
+    closeBtn.setAttribute('aria-label', 'Close notification preferences');
     closeBtn.addEventListener('click', () => this.hide());
 
     header.appendChild(title);

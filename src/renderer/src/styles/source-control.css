@@ -71,7 +71,7 @@
   width: 100%;
   min-height: 26px;
   max-height: 120px;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -165,7 +165,7 @@
 }
 
 .scm-sync-btn {
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-2);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -204,7 +204,7 @@
   border-left: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 0 4px 4px 0;
   color: var(--bg);
-  font-size: 10px;
+  font-size: var(--font-xs);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -213,6 +213,7 @@
 }
 
 .scm-commit-dropdown-btn:hover { opacity: 0.85; }
+.scm-commit-dropdown-btn:active { transform: scale(0.95); }
 
 .scm-commit-dropdown {
   position: absolute;
@@ -229,7 +230,7 @@
 }
 
 .scm-commit-dropdown-item {
-  padding: 5px 10px;
+  padding: var(--space-1) var(--space-3);
   font-size: var(--font-sm);
   cursor: pointer;
   transition: background var(--transition-fast);
@@ -261,7 +262,7 @@
 
 .scm-section-arrow {
   width: 16px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--fg-dim);
   flex-shrink: 0;
   text-align: center;

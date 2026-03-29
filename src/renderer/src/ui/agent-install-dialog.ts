@@ -23,6 +23,9 @@ export function showAgentInstallDialog(
 
   const card = document.createElement('div');
   card.className = 'agent-install-card';
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', 'Agent Installation');
+  card.setAttribute('aria-modal', 'true');
 
   // Header with icon
   const header = document.createElement('div');
@@ -59,19 +62,21 @@ export function showAgentInstallDialog(
   btnRow.className = 'agent-install-buttons';
 
   const docsBtn = document.createElement('a');
-  docsBtn.className = 'agent-install-docs-btn';
+  docsBtn.className = 'agent-install-docs-btn btn-secondary';
   docsBtn.textContent = 'View Docs';
   docsBtn.href = info.docsUrl;
   docsBtn.target = '_blank';
 
   const closeBtn = document.createElement('button');
-  closeBtn.className = 'agent-install-close-btn';
+  closeBtn.className = 'agent-install-close-btn btn-secondary';
   closeBtn.textContent = 'Close';
+  closeBtn.setAttribute('aria-label', 'Close install dialog');
   closeBtn.addEventListener('click', () => overlay.remove());
 
   const installBtn = document.createElement('button');
-  installBtn.className = 'agent-install-run-btn';
+  installBtn.className = 'agent-install-run-btn btn-primary';
   installBtn.textContent = 'Install';
+  installBtn.setAttribute('aria-label', 'Install agent');
   installBtn.addEventListener('click', () => {
     overlay.remove();
     if (_onInstall) {

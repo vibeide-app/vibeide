@@ -55,7 +55,7 @@ export class ScmCommitBox {
     commitGroup.className = 'scm-commit-group';
 
     this.commitBtn = document.createElement('button');
-    this.commitBtn.className = 'scm-commit-btn';
+    this.commitBtn.className = 'scm-commit-btn btn-primary';
     this.commitBtn.textContent = 'Commit';
     this.commitBtn.disabled = true;
     this.commitBtn.addEventListener('click', () => this.doCommit());

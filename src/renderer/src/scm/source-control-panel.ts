@@ -73,13 +73,13 @@ export class SourceControlPanel {
     this._aheadBehindLabel.className = 'scm-ahead-behind';
 
     const pullBtn = document.createElement('button');
-    pullBtn.className = 'scm-sync-btn';
+    pullBtn.className = 'scm-sync-btn btn-secondary';
     pullBtn.textContent = '\u2193 Pull';
     pullBtn.title = 'Pull from remote';
     pullBtn.addEventListener('click', () => this.doPull(pullBtn));
 
     const pushBtn = document.createElement('button');
-    pushBtn.className = 'scm-sync-btn';
+    pushBtn.className = 'scm-sync-btn btn-secondary';
     pushBtn.textContent = '\u2191 Push';
     pushBtn.title = 'Push to remote';
     pushBtn.addEventListener('click', () => this.doPush(pushBtn));

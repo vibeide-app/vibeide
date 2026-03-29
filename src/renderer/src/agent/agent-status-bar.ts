@@ -71,25 +71,47 @@ export class AgentStatusBar {
     splitV.title = 'Split vertical';
 
     // Direct click handlers
+    splitH.setAttribute('aria-label', 'Split pane horizontally');
     splitH.addEventListener('click', (e) => {
       e.stopPropagation();
-      console.log('[StatusBar] Split H clicked');
       callbacks.onSplitH?.();
     });
+    splitH.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        callbacks.onSplitH?.();
+      }
+    });
 
+    splitV.setAttribute('aria-label', 'Split pane vertically');
     splitV.addEventListener('click', (e) => {
       e.stopPropagation();
-      console.log('[StatusBar] Split V clicked');
       callbacks.onSplitV?.();
+    });
+    splitV.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        callbacks.onSplitV?.();
+      }
     });
 
     const killBtn = document.createElement('button');
     killBtn.className = 'status-bar-kill';
     killBtn.textContent = '\u00d7';
     killBtn.title = 'Kill agent';
+    killBtn.setAttribute('aria-label', 'Kill agent');
     killBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.onKill();
+    });
+    killBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.onKill();
+      }
     });
 
     this.element.appendChild(this.indicatorEl);

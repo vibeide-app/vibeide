@@ -299,7 +299,6 @@ export class VoiceCapture {
     // Ensure settings are loaded before checking API key
     await loadVoiceSettings();
     const apiKey = this.getApiKey();
-    console.log(`[VoiceCapture] startMediaRecorder: provider=${this.getProvider()}, hasKey=${!!apiKey}`);
     if (!apiKey) {
       this.showApiKeyPrompt();
       return;
@@ -370,7 +369,6 @@ export class VoiceCapture {
   }
 
   private async transcribeViaIPC(audioBlob: Blob, apiKey: string, provider: string): Promise<void> {
-    console.log(`[VoiceCapture] Transcribing via IPC: provider=${provider}, audioSize=${audioBlob.size}`);
     const arrayBuffer = await audioBlob.arrayBuffer();
     const uint8 = new Uint8Array(arrayBuffer);
     // Convert to base64 in chunks to avoid call stack overflow
