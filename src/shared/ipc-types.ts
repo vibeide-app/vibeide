@@ -109,6 +109,14 @@ export interface FileContent {
   readonly truncated: boolean;
 }
 
+export interface FileSearchResult {
+  readonly filePath: string;
+  readonly lineNumber: number;
+  readonly lineContent: string;
+  readonly matchStart: number;
+  readonly matchEnd: number;
+}
+
 export interface VibeIDEApi {
   pty: {
     spawn(request: PtySpawnRequest): Promise<PtySpawnResponse>;
@@ -175,6 +183,7 @@ export interface VibeIDEApi {
     listAll(rootPath: string): Promise<string[]>;
     read(filePath: string): Promise<FileContent>;
     write(filePath: string, content: string): Promise<{ success?: boolean; error?: string }>;
+    search(request: { projectPath: string; query: string; maxResults?: number }): Promise<FileSearchResult[]>;
   };
   notify: {
     show(request: { title: string; body: string; urgency?: 'low' | 'normal' | 'critical' }): Promise<void>;

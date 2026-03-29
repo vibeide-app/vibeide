@@ -25,6 +25,47 @@ import {
 
 const MAX_AGENTS = 20;
 
+function parseSearchResults(output: string, projectPath: string, isRipgrep: boolean): unknown[] {
+  const results: unknown[] = [];
+  const pathPrefix = projectPath.endsWith('/') ? projectPath : projectPath + '/';
+
+  for (const line of output.split('\n')) {
+    if (!line.trim()) continue;
+
+    let filePath: string;
+    let lineNumber: number;
+    let lineContent: string;
+    let matchStart = 0;
+
+    if (isRipgrep) {
+      // rg format: filepath:line:col:content
+      const match = line.match(/^(.+?):(\d+):(\d+):(.*)$/);
+      if (!match) continue;
+      filePath = match[1];
+      lineNumber = parseInt(match[2], 10);
+      matchStart = parseInt(match[3], 10) - 1;
+      lineContent = match[4];
+    } else {
+      // grep format: filepath:line:content
+      const match = line.match(/^(.+?):(\d+):(.*)$/);
+      if (!match) continue;
+      filePath = match[1];
+      lineNumber = parseInt(match[2], 10);
+      lineContent = match[3];
+    }
+
+    // Make path relative
+    if (filePath.startsWith(pathPrefix)) {
+      filePath = filePath.slice(pathPrefix.length);
+    }
+
+    results.push({ filePath, lineNumber, lineContent: lineContent.trim(), matchStart, matchEnd: matchStart + 1 });
+    if (results.length >= 200) break;
+  }
+
+  return results;
+}
+
 export function registerIpcHandlers(
   agentManager: AgentManager,
   ptyManager: PtyManager,
@@ -548,6 +589,64 @@ export function registerIpcHandlers(
       const { getGitLog } = await import('../git/git-service');
       return await getGitLog(req.projectPath, maxCount);
     } catch (error) { console.error('[IPC][git:log]', error); return { error: 'log_failed' }; }
+  });
+
+  // Cross-file search (ripgrep or grep)
+  ipcMain.handle(IPC_CHANNELS.FILE_SEARCH, async (_event, raw: unknown) => {
+    try {
+      if (typeof raw !== 'object' || raw === null) return [];
+      const req = raw as Record<string, unknown>;
+      if (typeof req.projectPath !== 'string' || typeof req.query !== 'string') return [];
+      if (!req.query.trim()) return [];
+
+      const maxResults = typeof req.maxResults === 'number' ? req.maxResults : 100;
+      const { execFile } = await import('node:child_process');
+      console.log(`[IPC][file:search] query="${req.query}" projectPath="${req.projectPath}"`);
+
+      // Try ripgrep first, fall back to grep
+      return new Promise<unknown[]>((resolve) => {
+        const rgArgs = [
+          '--line-number', '--column', '--no-heading',
+          '--max-count', String(maxResults),
+          '--glob', '!node_modules', '--glob', '!.git', '--glob', '!dist', '--glob', '!out',
+          '--', req.query as string, req.projectPath as string,
+        ];
+
+        execFile('rg', rgArgs, { timeout: 10000, maxBuffer: 2 * 1024 * 1024 }, (rgErr, rgOut) => {
+          console.log(`[IPC][file:search] rg: err=${rgErr ? 'yes' : 'no'} outLen=${rgOut?.length ?? 0}`);
+          if (rgOut && rgOut.trim()) {
+            const results = parseSearchResults(rgOut, req.projectPath as string, true);
+            console.log(`[IPC][file:search] rg parsed ${results.length} results`);
+            resolve(results);
+            return;
+          }
+
+          // Fallback to grep
+          const grepArgs = [
+            '-rn',
+            '--exclude-dir=node_modules', '--exclude-dir=.git',
+            '--exclude-dir=dist', '--exclude-dir=out',
+            '--exclude-dir=__pycache__', '--exclude-dir=.cache',
+            req.query as string, req.projectPath as string,
+          ];
+
+          console.log(`[IPC][file:search] trying grep with args:`, grepArgs.join(' '));
+          execFile('grep', grepArgs, { timeout: 10000, maxBuffer: 2 * 1024 * 1024 }, (_grepErr, grepOut, grepStderr) => {
+            console.log(`[IPC][file:search] grep: outLen=${grepOut?.length ?? 0} stderr=${grepStderr?.slice(0, 200) ?? ''}`);
+            if (grepOut && grepOut.trim()) {
+              const results = parseSearchResults(grepOut, req.projectPath as string, false);
+              console.log(`[IPC][file:search] grep parsed ${results.length} results`);
+              resolve(results);
+            } else {
+              resolve([]);
+            }
+          });
+        });
+      });
+    } catch (error) {
+      console.error('[IPC][file:search]', error);
+      return [];
+    }
   });
 
   // Agent install detection

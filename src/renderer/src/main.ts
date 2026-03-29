@@ -12,8 +12,10 @@ import { applyTheme, loadSavedTheme } from './terminal/terminal-theme';
 import { LAYOUT_PRESETS } from './layout/layout-presets';
 import { FileViewer } from './file/file-viewer';
 import { FileFinder } from './file/file-finder';
+import { FileSearch } from './file/file-search';
 import { VoiceCapture } from './voice/voice-capture';
 import { setInstallCallback } from './ui/agent-install-dialog';
+import { playNotificationSound, loadSoundConfig } from './ui/notification-sounds';
 import { VoiceRouter } from './voice/voice-router';
 import type { ProjectInfo, AppState } from '../../shared/ipc-types';
 import type { AgentType } from '../../shared/agent-types';
@@ -260,6 +262,23 @@ function main(): void {
     onFileExplorerClick: (projectPath: string) => {
       fileViewer.show(projectPath);
     },
+    onNotificationClick: async (projectId: string, _agentId: string, sessionId: string) => {
+      // Switch to the project and focus the agent's terminal
+      const projects = await window.api.project.list();
+      const project = projects.find((p: ProjectInfo) => p.id === projectId);
+      if (!project) return;
+      if (workspaceSwitcher.getActiveProjectId() !== projectId) {
+        await workspaceSwitcher.switchTo(project);
+      }
+      const workspace = workspaceSwitcher.getWorkspace(projectId);
+      if (workspace) {
+        workspace.focusTerminal(sessionId);
+        const leaf = workspace.layoutManager.findLeafBySessionId(sessionId);
+        if (leaf) {
+          workspace.layoutManager.focusLeaf(leaf.id);
+        }
+      }
+    },
   });
 
   // Periodic git status poll for sidebar badges
@@ -298,6 +317,9 @@ function main(): void {
     workspaceSwitcher.handleAgentStatus(event.agentId, event.status);
     projectSidebar.updateAgentStatus(event.agentId, event.status);
 
+    // Sound notification
+    if (event.status === 'needs-input') playNotificationSound('needs-input');
+
     // Desktop notification for needs-input on non-active projects
     if (event.status === 'needs-input') {
       const activeId = workspaceSwitcher.getActiveProjectId();
@@ -318,6 +340,9 @@ function main(): void {
     workspaceSwitcher.handleAgentExit(event.agentId, event.exitCode);
     const exitStatus = event.exitCode === 0 ? 'complete' : 'error';
     projectSidebar.updateAgentStatus(event.agentId, exitStatus as any);
+
+    // Sound notification
+    playNotificationSound(exitStatus as 'complete' | 'error');
 
     // Desktop notification for agent completion/error
     const activeId = workspaceSwitcher.getActiveProjectId();
@@ -340,42 +365,49 @@ function main(): void {
     id: 'new-project',
     label: 'New Project',
     shortcut: 'Ctrl+Shift+O',
+    category: 'General',
     action: () => projectSidebar['callbacks'].onProjectAdd(),
   });
   commandPalette.register({
     id: 'new-shell',
     label: 'New Shell in Project',
     shortcut: 'Ctrl+Shift+N',
+    category: 'Agent',
     action: () => spawnInActiveProject('shell'),
   });
   commandPalette.register({
     id: 'new-claude',
     label: 'New Claude Agent in Project',
     shortcut: 'Ctrl+Shift+1',
+    category: 'Agent',
     action: () => spawnInActiveProject('claude'),
   });
   commandPalette.register({
     id: 'new-gemini',
     label: 'New Gemini Agent in Project',
     shortcut: 'Ctrl+Shift+2',
+    category: 'Agent',
     action: () => spawnInActiveProject('gemini'),
   });
   commandPalette.register({
     id: 'new-codex',
     label: 'New Codex Agent in Project',
     shortcut: 'Ctrl+Shift+3',
+    category: 'Agent',
     action: () => spawnInActiveProject('codex'),
   });
   commandPalette.register({
     id: 'split-v',
     label: 'Split Vertical',
     shortcut: 'Ctrl+Shift+D',
+    category: 'Layout',
     action: () => spawnInActiveProject('shell', 'vertical'),
   });
   commandPalette.register({
     id: 'split-h',
     label: 'Split Horizontal',
     shortcut: 'Ctrl+Shift+E',
+    category: 'Layout',
     action: () => spawnInActiveProject('shell', 'horizontal'),
   });
   // File viewer
@@ -394,9 +426,30 @@ function main(): void {
     id: 'file-finder',
     label: 'Quick Open File',
     shortcut: 'Ctrl+P',
+    category: 'File',
     action: () => {
       const workspace = workspaceSwitcher.getActiveWorkspace();
       if (workspace) fileFinder.toggle(workspace.projectPath);
+    },
+  });
+
+  // Cross-file search
+  const fileSearch = new FileSearch(async (filePath, _lineNumber) => {
+    const ws = workspaceSwitcher.getActiveWorkspace();
+    if (ws) {
+      await fileViewer.show(ws.projectPath);
+      fileViewer.openFile(filePath);
+    }
+  });
+
+  commandPalette.register({
+    id: 'file-search',
+    label: 'Search Across Files',
+    shortcut: 'Ctrl+Shift+H',
+    category: 'File',
+    action: () => {
+      const workspace = workspaceSwitcher.getActiveWorkspace();
+      if (workspace) fileSearch.toggle(workspace.projectPath);
     },
   });
 
@@ -404,6 +457,7 @@ function main(): void {
     id: 'git-changes',
     label: 'Git: Show Changes',
     shortcut: 'Ctrl+Shift+G',
+    category: 'Git',
     action: () => {
       const workspace = workspaceSwitcher.getActiveWorkspace();
       if (workspace) fileViewer.showChanges(workspace.projectPath);
@@ -414,6 +468,7 @@ function main(): void {
     id: 'file-viewer',
     label: 'Open File Viewer',
     shortcut: 'Ctrl+Shift+E',
+    category: 'File',
     action: () => {
       const workspace = workspaceSwitcher.getActiveWorkspace();
       if (workspace) {
@@ -494,30 +549,31 @@ function main(): void {
 
   // Load voice settings from disk
   voiceCapture.ensureSettingsLoaded();
+  loadSoundConfig();
 
   commandPalette.register({
-    id: 'voice-toggle',
+    id: 'voice-toggle', category: 'Voice',
     label: 'Voice Dictation (hold to talk)',
     shortcut: 'Ctrl+Shift+M (hold)',
     action: () => voiceCapture.toggle(),
   });
   commandPalette.register({
-    id: 'voice-setup',
+    id: 'voice-setup', category: 'Voice',
     label: 'Voice Input: Configure',
     action: () => voiceCapture.showSetup(),
   });
   commandPalette.register({
-    id: 'voice-mode-command',
+    id: 'voice-mode-command', category: 'Voice',
     label: 'Voice Mode: Command (symbols + case conversion)',
     action: () => voiceCapture.setPostProcessMode('command'),
   });
   commandPalette.register({
-    id: 'voice-mode-natural',
+    id: 'voice-mode-natural', category: 'Voice',
     label: 'Voice Mode: Natural (raw transcription)',
     action: () => voiceCapture.setPostProcessMode('natural'),
   });
   commandPalette.register({
-    id: 'voice-mode-code',
+    id: 'voice-mode-code', category: 'Voice',
     label: 'Voice Mode: Code (symbols + abbreviations)',
     action: () => voiceCapture.setPostProcessMode('code'),
   });
@@ -528,6 +584,7 @@ function main(): void {
       id: `preset-${preset.id}`,
       label: `Layout: ${preset.label}`,
       shortcut: preset.shortcut,
+      category: 'Layout' as const,
       action: () => {
         applyPresetToActive(preset.id).catch((err) => {
           console.error('[Main] Preset failed:', err);
@@ -537,19 +594,19 @@ function main(): void {
   }
 
   commandPalette.register({
-    id: 'toggle-sidebar',
+    id: 'toggle-sidebar', category: 'View',
     label: 'Toggle Sidebar',
     shortcut: 'Ctrl+B',
     action: () => projectSidebar.toggleCollapse(),
   });
   commandPalette.register({
-    id: 'close-pane',
+    id: 'close-pane', category: 'Layout',
     label: 'Close Pane',
     shortcut: 'Ctrl+Shift+W',
     action: () => closeFocused(),
   });
   commandPalette.register({
-    id: 'search-terminal',
+    id: 'search-terminal', category: 'General',
     label: 'Search in Terminal',
     shortcut: 'Ctrl+Shift+F',
     action: () => toggleSearchOnFocused(),
@@ -572,6 +629,7 @@ function main(): void {
     commandPalette.register({
       id: `theme-${theme.id}`,
       label: `Theme: ${theme.label}`,
+      category: 'Theme' as const,
       action: () => switchTheme(theme.id),
     });
   }
@@ -600,29 +658,29 @@ function main(): void {
   }
 
   commandPalette.register({
-    id: 'terminal-font-increase',
+    id: 'terminal-font-increase', category: 'View',
     label: 'Terminal: Increase Font Size',
     shortcut: 'Ctrl++',
     action: () => changeTerminalFontSize(1),
   });
   commandPalette.register({
-    id: 'terminal-font-decrease',
+    id: 'terminal-font-decrease', category: 'View',
     label: 'Terminal: Decrease Font Size',
     shortcut: 'Ctrl+-',
     action: () => changeTerminalFontSize(-1),
   });
   commandPalette.register({
-    id: 'ui-font-increase',
+    id: 'ui-font-increase', category: 'View',
     label: 'UI: Increase Font Size',
     action: () => changeUIFontSize(1),
   });
   commandPalette.register({
-    id: 'ui-font-decrease',
+    id: 'ui-font-decrease', category: 'View',
     label: 'UI: Decrease Font Size',
     action: () => changeUIFontSize(-1),
   });
   commandPalette.register({
-    id: 'font-reset',
+    id: 'font-reset', category: 'View',
     label: 'Reset All Font Sizes',
     action: () => {
       terminalFontSize = 14;
@@ -640,6 +698,12 @@ function main(): void {
       action: () => {
         const ws = workspaceSwitcher.getActiveWorkspace();
         if (ws) fileViewer.showChanges(ws.projectPath);
+      },
+    },
+    'file-search': {
+      action: () => {
+        const ws = workspaceSwitcher.getActiveWorkspace();
+        if (ws) fileSearch.toggle(ws.projectPath);
       },
     },
     'file-finder': {
@@ -709,7 +773,7 @@ function main(): void {
   });
 
   commandPalette.register({
-    id: 'keybinding-editor',
+    id: 'keybinding-editor', category: 'General',
     label: 'Keyboard Shortcuts',
     shortcut: 'Ctrl+K Ctrl+S',
     action: () => keybindingEditor.toggle(),

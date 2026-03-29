@@ -1,7 +1,10 @@
+export type CommandCategory = 'Agent' | 'Layout' | 'File' | 'Theme' | 'Git' | 'Voice' | 'View' | 'General';
+
 interface Command {
   readonly id: string;
   readonly label: string;
   readonly shortcut?: string;
+  readonly category?: CommandCategory;
   readonly action: () => void;
 }
 
@@ -10,6 +13,9 @@ interface ScoredCommand {
   readonly score: number;
   readonly matchIndices: readonly number[];
 }
+
+const RECENT_STORAGE_KEY = 'vibeide-recent-commands';
+const MAX_RECENT = 5;
 
 function fuzzyMatch(text: string, query: string): { score: number; indices: number[] } | null {
   const textLower = text.toLowerCase();
@@ -22,11 +28,8 @@ function fuzzyMatch(text: string, query: string): { score: number; indices: numb
   for (let i = 0; i < textLower.length && queryIdx < queryLower.length; i++) {
     if (textLower[i] === queryLower[queryIdx]) {
       indices.push(i);
-      // Bonus for consecutive matches
       if (i === prevMatchIdx + 1) score += 5;
-      // Bonus for matching at word boundaries
       if (i === 0 || text[i - 1] === ' ' || text[i - 1] === ':' || text[i - 1] === '-') score += 3;
-      // Bonus for matching uppercase (camelCase/PascalCase boundaries)
       if (text[i] === text[i].toUpperCase() && text[i] !== text[i].toLowerCase()) score += 2;
       score += 1;
       prevMatchIdx = i;
@@ -34,12 +37,8 @@ function fuzzyMatch(text: string, query: string): { score: number; indices: numb
     }
   }
 
-  // All query characters must match
   if (queryIdx !== queryLower.length) return null;
-
-  // Bonus for shorter labels (prefer more specific matches)
   score += Math.max(0, 20 - text.length);
-
   return { score, indices };
 }
 
@@ -82,17 +81,19 @@ export class CommandPalette {
   private selectedIndex = 0;
   private filterText = '';
   private overlayEl: HTMLElement | null = null;
+  private recentIds: string[] = [];
+
+  constructor() {
+    this.loadRecent();
+  }
 
   register(command: Command): void {
     this.commands.push(command);
   }
 
   toggle(): void {
-    if (this.visible) {
-      this.hide();
-    } else {
-      this.show();
-    }
+    if (this.visible) this.hide();
+    else this.show();
   }
 
   show(): void {
@@ -112,13 +113,23 @@ export class CommandPalette {
     }
   }
 
+  private trackRecent(id: string): void {
+    this.recentIds = [id, ...this.recentIds.filter((r) => r !== id)].slice(0, MAX_RECENT);
+    try { localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(this.recentIds)); } catch { /* */ }
+  }
+
+  private loadRecent(): void {
+    try {
+      const raw = localStorage.getItem(RECENT_STORAGE_KEY);
+      if (raw) this.recentIds = JSON.parse(raw);
+    } catch { /* */ }
+  }
+
   private renderOverlay(): void {
     this.overlayEl = document.createElement('div');
     this.overlayEl.className = 'command-palette-overlay';
     this.overlayEl.addEventListener('click', (e) => {
-      if (e.target === this.overlayEl) {
-        this.hide();
-      }
+      if (e.target === this.overlayEl) this.hide();
     });
 
     const palette = document.createElement('div');
@@ -158,64 +169,119 @@ export class CommandPalette {
       return;
     }
 
-    results.forEach((result, index) => {
-      const item = document.createElement('div');
-      item.className = `command-item${index === this.selectedIndex ? ' selected' : ''}`;
+    let globalIndex = 0;
 
-      // Use highlighted label if fuzzy matched, plain text otherwise
-      if (this.filterText && result.matchIndices.length > 0) {
-        const label = highlightMatches(result.command.label, result.matchIndices);
-        item.appendChild(label);
-      } else {
-        const label = document.createElement('span');
-        label.className = 'command-label';
-        label.textContent = result.command.label;
-        item.appendChild(label);
+    if (!this.filterText) {
+      // No filter: show recently-used first, then grouped by category
+
+      // Recent section
+      const recentCommands = this.recentIds
+        .map((id) => this.commands.find((c) => c.id === id))
+        .filter(Boolean) as Command[];
+
+      if (recentCommands.length > 0) {
+        this.renderCategoryHeader(container, 'Recent');
+        for (const cmd of recentCommands) {
+          this.renderCommandItem(container, { command: cmd, score: 0, matchIndices: [] }, globalIndex);
+          globalIndex++;
+        }
       }
 
-      if (result.command.shortcut) {
-        const shortcut = document.createElement('span');
-        shortcut.className = 'command-shortcut';
-        shortcut.textContent = result.command.shortcut;
-        item.appendChild(shortcut);
+      // Group by category
+      const categories: CommandCategory[] = ['Agent', 'Layout', 'File', 'Git', 'Voice', 'Theme', 'View', 'General'];
+      const grouped = new Map<string, Command[]>();
+
+      for (const cmd of this.commands) {
+        // Skip commands already shown in recent
+        if (recentCommands.some((r) => r.id === cmd.id)) continue;
+        const cat = cmd.category ?? 'General';
+        if (!grouped.has(cat)) grouped.set(cat, []);
+        grouped.get(cat)!.push(cmd);
       }
 
-      item.addEventListener('click', () => {
-        this.hide();
-        result.command.action();
-      });
+      for (const cat of categories) {
+        const cmds = grouped.get(cat);
+        if (!cmds || cmds.length === 0) continue;
+        this.renderCategoryHeader(container, cat);
+        for (const cmd of cmds) {
+          this.renderCommandItem(container, { command: cmd, score: 0, matchIndices: [] }, globalIndex);
+          globalIndex++;
+        }
+      }
+    } else {
+      // Filtered: show flat list sorted by score
+      for (const result of results) {
+        this.renderCommandItem(container, result, globalIndex);
+        globalIndex++;
+      }
+    }
+  }
 
-      item.addEventListener('mouseenter', () => {
-        this.selectedIndex = index;
-        container.querySelectorAll('.command-item').forEach((el, i) => {
-          el.classList.toggle('selected', i === index);
-        });
-      });
+  private renderCategoryHeader(container: HTMLElement, category: string): void {
+    const header = document.createElement('div');
+    header.className = 'command-category-header';
+    header.textContent = category;
+    container.appendChild(header);
+  }
 
-      container.appendChild(item);
+  private renderCommandItem(container: HTMLElement, result: ScoredCommand, index: number): void {
+    const item = document.createElement('div');
+    item.className = `command-item${index === this.selectedIndex ? ' selected' : ''}`;
+
+    if (this.filterText && result.matchIndices.length > 0) {
+      const label = highlightMatches(result.command.label, result.matchIndices);
+      item.appendChild(label);
+    } else {
+      const label = document.createElement('span');
+      label.className = 'command-label';
+      label.textContent = result.command.label;
+      item.appendChild(label);
+    }
+
+    if (result.command.shortcut) {
+      const shortcut = document.createElement('span');
+      shortcut.className = 'command-shortcut';
+      shortcut.textContent = result.command.shortcut;
+      item.appendChild(shortcut);
+    }
+
+    item.addEventListener('click', () => {
+      this.trackRecent(result.command.id);
+      this.hide();
+      result.command.action();
     });
+
+    item.addEventListener('mouseenter', () => {
+      this.selectedIndex = index;
+      container.querySelectorAll('.command-item').forEach((el, i) => {
+        el.classList.toggle('selected', i === index);
+      });
+    });
+
+    container.appendChild(item);
   }
 
   private handleKeydown(e: KeyboardEvent): void {
-    const filtered = this.getFilteredCommands();
+    const allItems = this.overlayEl?.querySelectorAll('.command-item') ?? [];
+    const maxIndex = allItems.length - 1;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        this.selectedIndex = Math.min(this.selectedIndex + 1, filtered.length - 1);
+        this.selectedIndex = Math.min(this.selectedIndex + 1, maxIndex);
         this.updateSelection();
+        allItems[this.selectedIndex]?.scrollIntoView({ block: 'nearest' });
         break;
       case 'ArrowUp':
         e.preventDefault();
         this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
         this.updateSelection();
+        allItems[this.selectedIndex]?.scrollIntoView({ block: 'nearest' });
         break;
       case 'Enter':
         e.preventDefault();
-        if (filtered[this.selectedIndex]) {
-          this.hide();
-          filtered[this.selectedIndex].command.action();
-        }
+        const selected = allItems[this.selectedIndex] as HTMLElement | undefined;
+        if (selected) selected.click();
         break;
       case 'Escape':
         e.preventDefault();
@@ -243,17 +309,20 @@ export class CommandPalette {
 
     const scored: ScoredCommand[] = [];
     for (const command of this.commands) {
-      const match = fuzzyMatch(command.label, this.filterText);
-      if (match) {
+      // Search in both label and category
+      const labelMatch = fuzzyMatch(command.label, this.filterText);
+      const categoryMatch = command.category ? fuzzyMatch(command.category, this.filterText) : null;
+      const bestScore = Math.max(labelMatch?.score ?? 0, categoryMatch?.score ?? 0);
+
+      if (labelMatch || categoryMatch) {
         scored.push({
           command,
-          score: match.score,
-          matchIndices: match.indices,
+          score: bestScore,
+          matchIndices: labelMatch?.indices ?? [],
         });
       }
     }
 
-    // Sort by score descending
     scored.sort((a, b) => b.score - a.score);
     return scored;
   }

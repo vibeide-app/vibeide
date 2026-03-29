@@ -13,6 +13,7 @@ export interface ProjectSidebarCallbacks {
   readonly onAgentSelect: (agentId: string, sessionId: string) => void;
   readonly onGitChangesClick: (projectPath: string) => void;
   readonly onFileExplorerClick: (projectPath: string) => void;
+  readonly onNotificationClick: (projectId: string, agentId: string, sessionId: string) => void;
 }
 
 interface ProjectEntry {
@@ -20,6 +21,7 @@ interface ProjectEntry {
   readonly agents: AgentInfo[];
   expanded: boolean;
   notificationCount: number;
+  notifyingAgentIds: string[];
   gitChangeCount: number;
   gitChangeFiles: string[];
 }
@@ -90,7 +92,7 @@ export class ProjectSidebar {
           project,
           agents: [],
           expanded: false,
-          notificationCount: 0, gitChangeCount: 0, gitChangeFiles: [],
+          notificationCount: 0, notifyingAgentIds: [], gitChangeCount: 0, gitChangeFiles: [],
         });
       }
     }
@@ -159,7 +161,7 @@ export class ProjectSidebar {
         // Add notification badge if this is a non-active project
         if (projectId !== this.activeProjectId &&
             (status === 'needs-input' || status === 'complete' || status === 'error')) {
-          this.incrementNotification(projectId);
+          this.incrementNotification(projectId, agentId);
         }
         return;
       }
@@ -306,9 +308,26 @@ export class ProjectSidebar {
     // Notification badge
     const notifBadge = document.createElement('span');
     notifBadge.className = 'project-notification-badge';
+    notifBadge.title = 'Click to jump to agent';
     if (entry.notificationCount > 0) {
       notifBadge.textContent = String(entry.notificationCount);
     }
+    notifBadge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentEntry = this.entries.get(entry.project.id);
+      if (!currentEntry) return;
+      // Find the most urgent notifying agent
+      const targetAgentId = currentEntry.notifyingAgentIds[0];
+      if (targetAgentId) {
+        const agent = currentEntry.agents.find((a) => a.id === targetAgentId);
+        if (agent) {
+          this.callbacks.onNotificationClick(entry.project.id, agent.id, agent.sessionId);
+          // Clear notifications
+          this.entries.set(entry.project.id, { ...currentEntry, notificationCount: 0, notifyingAgentIds: [] });
+          notifBadge.textContent = '';
+        }
+      }
+    });
 
     const addAgentBtn = document.createElement('button');
     addAgentBtn.className = 'project-add-agent-btn';
@@ -446,10 +465,13 @@ export class ProjectSidebar {
     refs.pinIndicator.textContent = entry.project.pinned ? '\u{1F4CC}' : '';
   }
 
-  private incrementNotification(projectId: string): void {
+  private incrementNotification(projectId: string, agentId?: string): void {
     const entry = this.entries.get(projectId);
     if (!entry) return;
-    this.entries.set(projectId, { ...entry, notificationCount: entry.notificationCount + 1 });
+    const notifyingAgentIds = agentId && !entry.notifyingAgentIds.includes(agentId)
+      ? [...entry.notifyingAgentIds, agentId]
+      : entry.notifyingAgentIds;
+    this.entries.set(projectId, { ...entry, notificationCount: entry.notificationCount + 1, notifyingAgentIds });
 
     const wrapper = this.container.querySelector(
       `[data-project-id="${projectId}"] .project-notification-badge`,

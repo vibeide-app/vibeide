@@ -9,6 +9,7 @@ export const KEYBINDING_DEFAULTS: readonly KeybindingDefinition[] = [
   { id: 'command-palette', label: 'Command Palette', defaultKey: 'ctrl+shift+p' },
   { id: 'toggle-sidebar', label: 'Toggle Sidebar', defaultKey: 'ctrl+b' },
   { id: 'file-finder', label: 'Quick Open File', defaultKey: 'ctrl+p' },
+  { id: 'file-search', label: 'Search Across Files', defaultKey: 'ctrl+shift+h' },
   { id: 'git-changes', label: 'Git: Show Changes', defaultKey: 'ctrl+shift+g' },
   { id: 'file-viewer', label: 'Open File Viewer', defaultKey: 'ctrl+shift+e' },
   { id: 'add-project', label: 'Add Project', defaultKey: 'ctrl+shift+o' },
