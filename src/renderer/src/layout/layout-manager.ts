@@ -321,6 +321,21 @@ export class LayoutManager {
     return { node, removed: false };
   }
 
+  equalizeAll(): void {
+    if (!this.layout) return;
+    this.layout = this.resetRatios(this.layout);
+    this.render();
+  }
+
+  private resetRatios(node: LayoutNode): LayoutNode {
+    if (node.type === 'leaf') return node;
+    return {
+      ...node,
+      ratio: 0.5,
+      children: [this.resetRatios(node.children[0]), this.resetRatios(node.children[1])],
+    };
+  }
+
   private updateRatio(node: LayoutNode, splitId: string, ratio: number): LayoutNode {
     if (node.type === 'leaf') return node;
 

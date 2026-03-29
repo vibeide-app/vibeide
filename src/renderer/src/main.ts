@@ -502,6 +502,16 @@ function main(): void {
     category: 'Layout',
     action: () => spawnInActiveProject('shell', 'horizontal'),
   });
+  commandPalette.register({
+    id: 'equalize-panes',
+    label: 'Equalize All Panes',
+    category: 'Layout',
+    context: 'terminal',
+    action: () => {
+      const ws = workspaceSwitcher.getActiveWorkspace();
+      if (ws) ws.layoutManager.equalizeAll();
+    },
+  });
   // File viewer
   const fileViewer = new FileViewer();
 
@@ -600,6 +610,7 @@ function main(): void {
   voiceRouter.registerCommand({ id: 'new-crush', aliases: ['new crush', 'open crush', 'start crush', 'crush agent'], action: () => spawnInActiveProject('crush') });
   voiceRouter.registerCommand({ id: 'new-qwen', aliases: ['new qwen', 'open qwen', 'start qwen', 'qwen agent', 'new when', 'open when'], action: () => spawnInActiveProject('qwen') });
   voiceRouter.registerCommand({ id: 'close-pane', aliases: ['close pane', 'close terminal', 'close this', 'close tab'], action: () => closeFocused() });
+  voiceRouter.registerCommand({ id: 'equalize-panes', aliases: ['equalize panes', 'equal size', 'auto arrange', 'reset layout', 'equal panes'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) ws.layoutManager.equalizeAll(); } });
   voiceRouter.registerCommand({ id: 'toggle-sidebar', aliases: ['toggle sidebar', 'hide sidebar', 'show sidebar', 'sidebar'], action: () => projectSidebar.toggleCollapse() });
   voiceRouter.registerCommand({ id: 'command-palette', aliases: ['command palette', 'commands', 'open commands', 'show commands'], action: () => commandPalette.toggle() });
   voiceRouter.registerCommand({ id: 'file-finder', aliases: ['open file', 'quick open', 'find file', 'go to file'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) fileFinder.toggle(ws.projectPath); } });
