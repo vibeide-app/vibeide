@@ -16,7 +16,9 @@ export interface StatusBarCallbacks {
   readonly onKill: () => void;
   readonly onSplitH?: () => void;
   readonly onSplitV?: () => void;
+  readonly onReview?: () => void;
   readonly onMerge?: () => void;
+  readonly onDiscard?: () => void;
 }
 
 export class AgentStatusBar {
@@ -26,7 +28,9 @@ export class AgentStatusBar {
   private readonly uptimeEl: HTMLElement;
   private readonly versionEl: HTMLElement;
   private readonly branchEl: HTMLElement;
+  private readonly reviewBtn: HTMLElement;
   private readonly mergeBtn: HTMLElement;
+  private readonly discardBtn: HTMLElement;
   private uptimeInterval: ReturnType<typeof setInterval> | null = null;
   private readonly startedAt: number;
   private readonly onKill: () => void;
@@ -61,23 +65,13 @@ export class AgentStatusBar {
       this.branchEl.title = agentInfo.worktree.branchName;
     }
 
-    this.mergeBtn = document.createElement('button');
-    this.mergeBtn.className = 'status-bar-merge';
-    this.mergeBtn.textContent = '\u2934 Merge';
-    this.mergeBtn.title = 'Merge agent changes into main branch';
+    // Worktree action buttons (hidden until agent completes)
+    this.reviewBtn = this.createActionButton('status-bar-review', '\u{1F50D} Review', 'Review agent changes', () => callbacks.onReview?.());
+    this.mergeBtn = this.createActionButton('status-bar-merge', '\u2934 Merge', 'Merge agent changes into main branch', () => callbacks.onMerge?.());
+    this.discardBtn = this.createActionButton('status-bar-discard', '\u2717 Discard', 'Discard agent changes and remove worktree', () => callbacks.onDiscard?.());
+    this.reviewBtn.style.display = 'none';
     this.mergeBtn.style.display = 'none';
-    this.mergeBtn.setAttribute('aria-label', 'Merge agent worktree');
-    this.mergeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      callbacks.onMerge?.();
-    });
-    this.mergeBtn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        callbacks.onMerge?.();
-      }
-    });
+    this.discardBtn.style.display = 'none';
 
     this.indicatorEl = createStatusIndicator(agentInfo.status);
 
@@ -150,7 +144,9 @@ export class AgentStatusBar {
     this.element.appendChild(this.branchEl);
     this.element.appendChild(this.statusTextEl);
     this.element.appendChild(this.uptimeEl);
+    this.element.appendChild(this.reviewBtn);
     this.element.appendChild(this.mergeBtn);
+    this.element.appendChild(this.discardBtn);
     this.element.appendChild(splitH);
     this.element.appendChild(splitV);
     this.element.appendChild(killBtn);
@@ -180,10 +176,25 @@ export class AgentStatusBar {
       this.stopUptimeCounter();
     }
 
-    // Show merge button when agent finishes (only if it has a worktree)
+    // Show worktree action buttons when agent finishes (only if it has a worktree)
     if (this.branchEl.textContent && (status === 'complete' || status === 'stopped')) {
+      this.reviewBtn.style.display = '';
       this.mergeBtn.style.display = '';
+      this.discardBtn.style.display = '';
     }
+  }
+
+  private createActionButton(className: string, text: string, title: string, onClick: () => void): HTMLElement {
+    const btn = document.createElement('button');
+    btn.className = className;
+    btn.textContent = text;
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClick(); }
+    });
+    return btn;
   }
 
   updateVersion(version: string): void {

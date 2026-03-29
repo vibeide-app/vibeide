@@ -1,6 +1,7 @@
 import { TerminalManager } from '../terminal/terminal-manager';
 import { LayoutManager } from '../layout/layout-manager';
 import { AgentStatusBar } from '../agent/agent-status-bar';
+import { WorktreeDiffPanel } from '../agent/worktree-diff-panel';
 import { AGENT_INSTALL_INFO } from '../../../shared/agent-install-info';
 import { showAgentInstallDialog } from '../ui/agent-install-dialog';
 import type { AgentInfo, AgentType } from '../../../shared/agent-types';
@@ -117,7 +118,9 @@ export class ProjectWorkspace {
         onKill: () => this.killAgent(info.id),
         onSplitH: () => this.spawnAgent('shell', 'horizontal'),
         onSplitV: () => this.spawnAgent('shell', 'vertical'),
+        onReview: () => this.reviewAgentWorktree(info.id, info.worktree?.branchName ?? ''),
         onMerge: () => this.mergeAgentWorktree(info.id),
+        onDiscard: () => this.discardAgentWorktree(info.id),
       });
       this.tracked.set(info.id, { info, statusBar });
 
@@ -244,11 +247,22 @@ export class ProjectWorkspace {
     return this.tracked.has(agentId);
   }
 
+  private readonly diffPanel = new WorktreeDiffPanel();
+
+  async reviewAgentWorktree(agentId: string, branchName: string): Promise<void> {
+    this.diffPanel.show(agentId, branchName, async (action) => {
+      if (action === 'merge') {
+        await this.mergeAgentWorktree(agentId);
+      } else if (action === 'discard') {
+        await this.discardAgentWorktree(agentId);
+      }
+    });
+  }
+
   async mergeAgentWorktree(agentId: string): Promise<void> {
     try {
       const diff = await window.api.worktree.diff(agentId);
       if (!diff || diff.filesChanged === 0) {
-        // No changes — just cleanup
         await window.api.worktree.cleanup(agentId);
         return;
       }
@@ -259,6 +273,14 @@ export class ProjectWorkspace {
       }
     } catch (error) {
       console.error('[ProjectWorkspace] Merge error:', error);
+    }
+  }
+
+  async discardAgentWorktree(agentId: string): Promise<void> {
+    try {
+      await window.api.worktree.cleanup(agentId);
+    } catch (error) {
+      console.error('[ProjectWorkspace] Discard error:', error);
     }
   }
 
