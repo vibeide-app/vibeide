@@ -11,6 +11,7 @@ export interface ProjectSidebarCallbacks {
   readonly onProjectPin: (projectId: string, pinned: boolean) => void;
   readonly onAgentSpawn: (projectId: string, type: AgentType) => void;
   readonly onAgentSelect: (agentId: string, sessionId: string) => void;
+  readonly onAgentKill: (agentId: string) => void;
   readonly onGitChangesClick: (projectPath: string) => void;
   readonly onFileExplorerClick: (projectPath: string) => void;
   readonly onNotificationClick: (projectId: string, agentId: string, sessionId: string) => void;
@@ -448,10 +449,21 @@ export class ProjectSidebar {
       agentBadge.className = 'agent-type-badge';
       agentBadge.textContent = agent.config.type;
 
+      const killBtn = document.createElement('button');
+      killBtn.className = 'agent-entry-kill';
+      killBtn.textContent = '\u00d7';
+      killBtn.title = 'Kill agent';
+      killBtn.setAttribute('aria-label', 'Kill agent');
+      killBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.callbacks.onAgentKill(agent.id);
+      });
+
       agentEl.appendChild(agentDot);
       agentEl.appendChild(agentIcon);
       agentEl.appendChild(agentLabel);
       agentEl.appendChild(agentBadge);
+      agentEl.appendChild(killBtn);
       agentList.appendChild(agentEl);
     }
 

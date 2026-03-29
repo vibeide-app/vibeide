@@ -264,6 +264,16 @@ function main(): void {
         workspace.focusTerminal(sessionId);
       }
     },
+    onAgentKill: async (agentId: string) => {
+      for (const ws of workspaceSwitcher.getAllWorkspaces()) {
+        if (ws.hasAgent(agentId)) {
+          await ws.killAgent(agentId);
+          const agents = Array.from(ws.getTrackedAgents().values()).map((t) => t.info);
+          projectSidebar.updateAgents(ws.projectId, agents);
+          break;
+        }
+      }
+    },
     onGitChangesClick: (projectPath: string) => {
       fileViewer.showChanges(projectPath);
     },
