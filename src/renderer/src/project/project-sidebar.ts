@@ -289,7 +289,7 @@ export class ProjectSidebar {
     const name = document.createElement('span');
     name.className = 'project-name';
     name.textContent = entry.project.name;
-    name.title = entry.project.path;
+    name.title = `${entry.project.path}\nDouble-click to rename`;
 
     // Double-click to rename
     name.addEventListener('dblclick', (e) => {
@@ -364,11 +364,18 @@ export class ProjectSidebar {
     row.appendChild(removeBtn);
     wrapper.appendChild(row);
 
-    // Agent list container (always exists, populated when expanded)
+    // Agent list or empty hint when expanded
     let agentListEl: HTMLElement | null = null;
-    if (entry.expanded && entry.agents.length > 0) {
-      agentListEl = this.createAgentListElement(entry.agents);
-      wrapper.appendChild(agentListEl);
+    if (entry.expanded) {
+      if (entry.agents.length > 0) {
+        agentListEl = this.createAgentListElement(entry.agents);
+        wrapper.appendChild(agentListEl);
+      } else {
+        const emptyHint = document.createElement('div');
+        emptyHint.className = 'project-agent-list-empty';
+        emptyHint.textContent = 'No agents \u2014 click + to add';
+        wrapper.appendChild(emptyHint);
+      }
     }
 
     return { wrapper, row, dot, arrow, name, countBadge, pinIndicator, agentListEl };
@@ -457,15 +464,22 @@ export class ProjectSidebar {
     const entry = this.entries.get(projectId);
     if (!refs || !entry) return;
 
-    // Remove existing agent list
+    // Remove existing agent list or empty hint
     const existingList = refs.wrapper.querySelector('.project-agent-list');
-    if (existingList) {
-      existingList.remove();
-    }
+    if (existingList) existingList.remove();
+    const existingHint = refs.wrapper.querySelector('.project-agent-list-empty');
+    if (existingHint) existingHint.remove();
 
-    if (entry.expanded && entry.agents.length > 0) {
-      const agentListEl = this.createAgentListElement(entry.agents);
-      refs.wrapper.appendChild(agentListEl);
+    if (entry.expanded) {
+      if (entry.agents.length > 0) {
+        const agentListEl = this.createAgentListElement(entry.agents);
+        refs.wrapper.appendChild(agentListEl);
+      } else {
+        const emptyHint = document.createElement('div');
+        emptyHint.className = 'project-agent-list-empty';
+        emptyHint.textContent = 'No agents \u2014 click + to add';
+        refs.wrapper.appendChild(emptyHint);
+      }
     }
   }
 

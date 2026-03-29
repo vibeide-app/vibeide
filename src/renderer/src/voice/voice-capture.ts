@@ -631,13 +631,22 @@ export class VoiceCapture {
     this.updateIndicator();
   }
 
+  private lastErrorReason = '';
+
   private createIndicator(): void {
     this.indicatorEl = document.createElement('div');
     this.indicatorEl.className = 'voice-indicator';
-    this.indicatorEl.style.display = 'none';
+
+    // Accessibility
+    this.indicatorEl.setAttribute('role', 'status');
+    this.indicatorEl.setAttribute('aria-live', 'polite');
+    this.indicatorEl.setAttribute('aria-atomic', 'true');
 
     const dot = document.createElement('span');
     dot.className = 'voice-indicator-dot';
+
+    const modeBadge = document.createElement('span');
+    modeBadge.className = 'voice-indicator-mode';
 
     const label = document.createElement('span');
     label.className = 'voice-indicator-label';
@@ -647,6 +656,7 @@ export class VoiceCapture {
     text.className = 'voice-indicator-text';
 
     this.indicatorEl.appendChild(dot);
+    this.indicatorEl.appendChild(modeBadge);
     this.indicatorEl.appendChild(label);
     this.indicatorEl.appendChild(text);
     document.body.appendChild(this.indicatorEl);
@@ -658,6 +668,30 @@ export class VoiceCapture {
     if (textEl) textEl.textContent = text;
   }
 
+  private updateModeLabel(): void {
+    if (!this.indicatorEl) return;
+    const modeBadge = this.indicatorEl.querySelector('.voice-indicator-mode') as HTMLElement;
+    if (modeBadge) {
+      const modeLabels: Record<string, string> = { natural: 'Dictation', command: 'Command', code: 'Code' };
+      modeBadge.textContent = modeLabels[this.postProcessMode] ?? this.postProcessMode;
+    }
+  }
+
+  showDoneState(transcript: string): void {
+    if (!this.indicatorEl) return;
+    const dot = this.indicatorEl.querySelector('.voice-indicator-dot') as HTMLElement;
+    const label = this.indicatorEl.querySelector('.voice-indicator-label') as HTMLElement;
+
+    this.indicatorEl.className = 'voice-indicator done visible';
+    if (dot) dot.className = 'voice-indicator-dot done';
+    if (label) label.textContent = 'Done';
+    this.updateIndicatorText(transcript.slice(0, 60));
+
+    setTimeout(() => {
+      this.indicatorEl?.classList.remove('visible');
+    }, 800);
+  }
+
   private updateIndicator(): void {
     if (!this.indicatorEl) return;
 
@@ -666,29 +700,29 @@ export class VoiceCapture {
 
     switch (this.state) {
       case 'listening':
-        this.indicatorEl.style.display = '';
-        this.indicatorEl.className = 'voice-indicator listening';
+        this.indicatorEl.className = 'voice-indicator listening visible';
         if (dot) dot.className = 'voice-indicator-dot recording';
         if (label) label.textContent = 'Listening...';
+        this.updateModeLabel();
         this.updateIndicatorText('');
         break;
       case 'processing':
-        this.indicatorEl.style.display = '';
-        this.indicatorEl.className = 'voice-indicator processing';
+        this.indicatorEl.className = 'voice-indicator processing visible';
         if (dot) dot.className = 'voice-indicator-dot processing';
         if (label) label.textContent = 'Transcribing...';
         break;
       case 'error':
-        this.indicatorEl.style.display = '';
-        this.indicatorEl.className = 'voice-indicator error';
+        this.indicatorEl.className = 'voice-indicator error visible';
         if (dot) dot.className = 'voice-indicator-dot error';
         if (label) label.textContent = 'Voice error';
+        this.updateIndicatorText(this.lastErrorReason || 'Try again');
         setTimeout(() => {
-          if (this.indicatorEl && this.state === 'error') this.indicatorEl.style.display = 'none';
-        }, 2000);
+          this.indicatorEl?.classList.remove('visible');
+          if (this.state === 'error') this.state = 'idle';
+        }, 3500);
         break;
       case 'idle':
-        this.indicatorEl.style.display = 'none';
+        this.indicatorEl?.classList.remove('visible');
         break;
     }
   }

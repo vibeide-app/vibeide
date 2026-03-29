@@ -553,26 +553,29 @@
 .project-entry-wrapper { position: relative; }
 
 .project-entry {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) 10px;
   cursor: pointer;
   border-bottom: 1px solid var(--border-subtle);
+  border-left: 2px solid transparent;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   line-height: var(--leading-normal);
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .project-entry:hover {
   background: var(--bg);
-  border-left: 2px solid var(--border);
-  padding-left: 10px;
+  border-left-color: var(--border);
 }
 
 .project-entry.active {
-  background: var(--accent-dim);
-  border-left: 2px solid var(--accent);
-  padding-left: 10px;
+  background: rgba(122, 162, 247, 0.2);
+  border-left-color: var(--accent);
+}
+
+.project-entry.active .project-name {
+  color: var(--accent);
 }
 
 /* CSS triangle arrows instead of unicode */
@@ -619,7 +622,13 @@
   cursor: pointer;
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
+  opacity: 0;
   transition: all var(--transition-fast);
+}
+
+.project-entry:hover .git-change-badge,
+.project-entry.active .git-change-badge {
+  opacity: 1;
 }
 
 .git-change-badge:hover {
@@ -640,7 +649,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: all 0.05s ease;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -665,7 +674,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: all 0.05s ease;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -684,7 +693,24 @@
   background: var(--surface-hover);
 }
 
-.project-agent-list { padding-left: var(--space-5); }
+.project-agent-list {
+  padding-left: var(--space-5);
+  position: relative;
+}
+
+.project-agent-list::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-subtle);
+}
+
+.project-agent-entry .agent-label {
+  font-size: var(--font-sm);
+}
 
 .project-agent-entry {
   padding: 6px var(--space-3);
@@ -699,6 +725,13 @@
 .project-agent-entry:hover { background: var(--bg); }
 
 .project-agent-dropdown { margin: var(--space-1) var(--space-3) var(--space-1) var(--space-5); }
+
+.project-agent-list-empty {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-sm);
+  color: var(--fg-faint);
+  font-style: italic;
+}
 
 /* ============================================
    Empty states
@@ -1274,9 +1307,9 @@
    ============================================ */
 .voice-indicator {
   position: fixed;
-  bottom: 44px; /* above hint bar */
+  bottom: calc(var(--hint-bar-height, 24px) + 20px);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(8px);
   z-index: 1200;
   background: var(--bg-deep);
   border: 1px solid var(--border);
@@ -1291,11 +1324,24 @@
   font-size: var(--font-base);
   min-width: 200px;
   max-width: 560px;
-  animation: panel-in var(--transition-smooth);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease;
+}
+
+.voice-indicator.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
 }
 
 .voice-indicator.listening { border-color: var(--error); }
 .voice-indicator.processing { border-color: var(--warning); }
+.voice-indicator.done { border-color: var(--success); }
 .voice-indicator.error { border-color: var(--error); }
 
 .voice-indicator-dot {
@@ -1307,19 +1353,42 @@
 
 .voice-indicator-dot.recording {
   background: var(--error);
-  animation: pulse-recording 1s ease-in-out infinite;
+  animation: pulse-recording 1.2s ease-in-out infinite;
 }
 
 .voice-indicator-dot.processing {
-  background: var(--warning);
-  animation: pulse-recording 0.5s ease-in-out infinite;
+  background: transparent;
+  border: 2px solid var(--warning);
+  border-top-color: transparent;
+  animation: spin-processing 0.8s linear infinite;
 }
 
+.voice-indicator-dot.done { background: var(--success); }
 .voice-indicator-dot.error { background: var(--error); }
 
 @keyframes pulse-recording {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(247, 118, 142, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 5px rgba(247, 118, 142, 0);
+  }
+}
+
+@keyframes spin-processing {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-indicator-dot.recording,
+  .voice-indicator-dot.processing {
+    animation: none;
+  }
+  .voice-indicator {
+    transition: none;
+  }
 }
 
 .voice-indicator-label {
@@ -1329,13 +1398,27 @@
   letter-spacing: var(--tracking-wide);
 }
 
+.voice-indicator-mode {
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .voice-indicator-text {
   color: var(--fg);
   font-style: italic;
-  max-width: 300px;
+  max-width: 380px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  direction: rtl;
+  text-align: left;
 }
 
 /* ============================================

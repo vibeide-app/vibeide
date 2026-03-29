@@ -464,12 +464,13 @@ function main(): void {
       if (voiceMode === 'command') {
         const result = voiceRouter.routeCommand(text);
         if (result.matched) {
-          console.log(`[Voice] Command matched: ${result.command}`);
+          voiceCapture.showDoneState(`\u2713 ${result.command}`);
         } else {
-          console.log(`[Voice] No command match for: "${text}"`);
+          voiceCapture.showDoneState(text);
         }
       } else {
         voiceRouter.routeDictation(text);
+        voiceCapture.showDoneState(text);
       }
     },
     (_state) => {
