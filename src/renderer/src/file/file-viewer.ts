@@ -458,12 +458,17 @@ export class FileViewer {
   private async popout(): Promise<void> {
     if (!this.currentFilePath) return;
     try {
-      const content = this.editorView
-        ? this.editorView.state.doc.toString()
-        : '';
+      let content = '';
+      if (this.editorView) {
+        content = this.editorView.state.doc.toString();
+      } else {
+        // Try loading the file content directly
+        const result = await window.api.file.read(this.currentFilePath);
+        content = result?.content ?? '';
+      }
       await window.api.window.popoutFile(this.currentFilePath, content);
-    } catch {
-      // Pop-out failed
+    } catch (error) {
+      console.error('[FileViewer] Pop-out failed:', error);
     }
   }
 
