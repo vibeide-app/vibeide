@@ -44,8 +44,8 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.on(IPC_CHANNELS.AGENT_VERSION, handler);
       return () => { ipcRenderer.removeListener(IPC_CHANNELS.AGENT_VERSION, handler); };
     },
-    onAvailabilityChanged: (callback: (availability: { claude: boolean; gemini: boolean; codex: boolean }) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: { claude: boolean; gemini: boolean; codex: boolean }) =>
+    onAvailabilityChanged: (callback: (availability: Record<string, boolean>) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Record<string, boolean>) =>
         callback(data);
       ipcRenderer.on(IPC_CHANNELS.AGENT_AVAILABILITY_CHANGED, handler);
       return () => { ipcRenderer.removeListener(IPC_CHANNELS.AGENT_AVAILABILITY_CHANGED, handler); };

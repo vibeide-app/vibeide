@@ -196,6 +196,167 @@ const EXCLUDE_PATTERNS: readonly RegExp[] = [
   /\bSearching\b/i,
 ];
 
+// ─── Aider specific patterns ───
+
+const AIDER_PATTERNS: readonly RegExp[] = [
+  // Aider's main prompt
+  /^aider\s*>\s*$/,
+  /^aider\s*v[\d.]+\s*>/,
+
+  // Aider file add/drop prompts
+  /\bAdd\b.*to the chat\?/i,
+  /\bDrop\b.*from the chat\?/i,
+
+  // Aider apply changes
+  /\bApply\b.*edit/i,
+  /\bCommit\b.*changes\?/i,
+
+  // Aider git prompts
+  /\bCreate a git repo\b/i,
+  /\bAllow creation of\b/i,
+];
+
+// ─── OpenCode specific patterns ───
+
+const OPENCODE_PATTERNS: readonly RegExp[] = [
+  // OpenCode uses Bubble Tea TUI — input area at bottom
+  // Detect when waiting for user prompt (idle state)
+  /^>\s*$/,
+
+  // OpenCode tool approval
+  /\bApprove\b.*tool/i,
+  /\bAllow\b.*execution/i,
+  /\bRun\b.*command\?/i,
+  /\bPermit\b.*access/i,
+
+  // OpenCode file operations
+  /\bWrite\b.*file\?/i,
+  /\bEdit\b.*file\?/i,
+  /\bCreate\b.*file\?/i,
+];
+
+// ─── Cline CLI specific patterns ───
+
+const CLINE_PATTERNS: readonly RegExp[] = [
+  // Cline tool approval (similar to Claude Code)
+  /\bApprove\b/i,
+  /\bDeny\b/i,
+  /\bAllow\b.*tool/i,
+
+  // Cline Plan/Act mode prompts
+  /\bSwitch to Act mode\b/i,
+  /\bProceed with plan\b/i,
+  /\bExecute plan\b/i,
+
+  // Cline file operation approvals
+  /\bWrite to\b.*[?]/i,
+  /\bExecute\b.*command.*[?]/i,
+  /\bRead\b.*file.*[?]/i,
+
+  // Cline auth prompts
+  /\bcline auth\b/i,
+  /\bSign in\b/i,
+];
+
+// ─── GitHub Copilot CLI specific patterns ───
+
+const COPILOT_PATTERNS: readonly RegExp[] = [
+  // Copilot tool execution approval
+  /\bApprove\b.*tool/i,
+  /\bAllow\b.*execution/i,
+  /\bRun\b.*command.*[?]/i,
+
+  // Copilot Plan mode
+  /\bExecute\b.*plan/i,
+  /\bProceed\b.*plan/i,
+
+  // Copilot MCP/model selection
+  /\bSelect\b.*model/i,
+  /\bChoose\b.*provider/i,
+];
+
+// ─── Amp (Sourcegraph) specific patterns ───
+
+const AMP_PATTERNS: readonly RegExp[] = [
+  // Amp text prompt
+  /^>\s*$/,
+
+  // Amp tool approval
+  /\bApprove\b/i,
+  /\bAllow\b.*tool/i,
+  /\bRun\b.*command.*[?]/i,
+
+  // Amp shell command prefix
+  /^\$\s*$/,
+];
+
+// ─── Continue CLI specific patterns ───
+
+const CONTINUE_PATTERNS: readonly RegExp[] = [
+  // Continue interactive prompt
+  /^>\s*$/,
+
+  // Continue tool permission
+  /\bApprove\b.*tool/i,
+  /\bAllow\b.*execution/i,
+  /\bPermit\b/i,
+
+  // Continue file operations
+  /\bWrite\b.*file.*[?]/i,
+  /\bEdit\b.*file.*[?]/i,
+  /\bRun\b.*command.*[?]/i,
+];
+
+// ─── Cursor CLI specific patterns ───
+
+const CURSOR_PATTERNS: readonly RegExp[] = [
+  // Cursor tool approval
+  /\bApprove\b/i,
+  /\bAllow\b.*tool/i,
+  /\bRun\b.*command.*[?]/i,
+
+  // Cursor Plan/Ask modes
+  /\bExecute\b.*plan/i,
+  /\bSwitch to.*mode/i,
+
+  // Cursor shell command approval
+  /\bExecute\b.*shell/i,
+  /\bRun\b.*shell.*[?]/i,
+];
+
+// ─── Crush (Charmbracelet) specific patterns ───
+
+const CRUSH_PATTERNS: readonly RegExp[] = [
+  // Crush uses Bubble Tea TUI (same as OpenCode)
+  /^>\s*$/,
+
+  // Crush tool permissions
+  /\bApprove\b.*tool/i,
+  /\bAllow\b.*execution/i,
+  /\bGrant\b.*permission/i,
+
+  // Crush file operations
+  /\bWrite\b.*file\?/i,
+  /\bEdit\b.*file\?/i,
+];
+
+// ─── Qwen Code specific patterns ───
+
+const QWEN_PATTERNS: readonly RegExp[] = [
+  // Qwen interactive prompt
+  /^>\s*$/,
+
+  // Qwen tool approval
+  /\bApprove\b/i,
+  /\bAllow\b.*execution/i,
+  /\bRun\b.*command.*[?]/i,
+
+  // Qwen file operations
+  /\bWrite\b.*file\?/i,
+  /\bCreate\b.*file\?/i,
+  /\bCommit\b.*changes\?/i,
+];
+
 // ─── Agent-type to patterns mapping ───
 
 function getPatternsForAgent(agentType: AgentType): readonly RegExp[] {
@@ -203,6 +364,15 @@ function getPatternsForAgent(agentType: AgentType): readonly RegExp[] {
     case 'claude': return [...GENERIC_PATTERNS, ...CLAUDE_PATTERNS];
     case 'gemini': return [...GENERIC_PATTERNS, ...GEMINI_PATTERNS];
     case 'codex': return [...GENERIC_PATTERNS, ...CODEX_PATTERNS];
+    case 'aider': return [...GENERIC_PATTERNS, ...AIDER_PATTERNS];
+    case 'opencode': return [...GENERIC_PATTERNS, ...OPENCODE_PATTERNS];
+    case 'cline': return [...GENERIC_PATTERNS, ...CLINE_PATTERNS];
+    case 'copilot': return [...GENERIC_PATTERNS, ...COPILOT_PATTERNS];
+    case 'amp': return [...GENERIC_PATTERNS, ...AMP_PATTERNS];
+    case 'continue': return [...GENERIC_PATTERNS, ...CONTINUE_PATTERNS];
+    case 'cursor': return [...GENERIC_PATTERNS, ...CURSOR_PATTERNS];
+    case 'crush': return [...GENERIC_PATTERNS, ...CRUSH_PATTERNS];
+    case 'qwen': return [...GENERIC_PATTERNS, ...QWEN_PATTERNS];
     default: return GENERIC_PATTERNS;
   }
 }

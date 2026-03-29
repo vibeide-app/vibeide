@@ -434,6 +434,60 @@ function main(): void {
     action: () => spawnInActiveProject('codex'),
   });
   commandPalette.register({
+    id: 'new-aider',
+    label: 'New Aider Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('aider'),
+  });
+  commandPalette.register({
+    id: 'new-opencode',
+    label: 'New OpenCode Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('opencode'),
+  });
+  commandPalette.register({
+    id: 'new-cline',
+    label: 'New Cline Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('cline'),
+  });
+  commandPalette.register({
+    id: 'new-copilot',
+    label: 'New Copilot Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('copilot'),
+  });
+  commandPalette.register({
+    id: 'new-amp',
+    label: 'New Amp Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('amp'),
+  });
+  commandPalette.register({
+    id: 'new-continue',
+    label: 'New Continue Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('continue'),
+  });
+  commandPalette.register({
+    id: 'new-cursor',
+    label: 'New Cursor Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('cursor'),
+  });
+  commandPalette.register({
+    id: 'new-crush',
+    label: 'New Crush Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('crush'),
+  });
+  commandPalette.register({
+    id: 'new-qwen',
+    label: 'New Qwen Code Agent in Project',
+    category: 'Agent',
+    action: () => spawnInActiveProject('qwen'),
+  });
+  commandPalette.register({
     id: 'split-v',
     label: 'Split Vertical',
     shortcut: 'Ctrl+Shift+D',
@@ -535,6 +589,15 @@ function main(): void {
   voiceRouter.registerCommand({ id: 'new-claude', aliases: ['new claude', 'open claude', 'start claude', 'claude agent', 'new cloud', 'open cloud'], action: () => spawnInActiveProject('claude') });
   voiceRouter.registerCommand({ id: 'new-gemini', aliases: ['new gemini', 'open gemini', 'start gemini', 'gemini agent'], action: () => spawnInActiveProject('gemini') });
   voiceRouter.registerCommand({ id: 'new-codex', aliases: ['new codex', 'open codex', 'start codex', 'codex agent'], action: () => spawnInActiveProject('codex') });
+  voiceRouter.registerCommand({ id: 'new-aider', aliases: ['new aider', 'open aider', 'start aider', 'aider agent'], action: () => spawnInActiveProject('aider') });
+  voiceRouter.registerCommand({ id: 'new-opencode', aliases: ['new opencode', 'open opencode', 'start opencode', 'opencode agent', 'new open code', 'open open code'], action: () => spawnInActiveProject('opencode') });
+  voiceRouter.registerCommand({ id: 'new-cline', aliases: ['new cline', 'open cline', 'start cline', 'cline agent', 'new Klein', 'open Klein'], action: () => spawnInActiveProject('cline') });
+  voiceRouter.registerCommand({ id: 'new-copilot', aliases: ['new copilot', 'open copilot', 'start copilot', 'copilot agent'], action: () => spawnInActiveProject('copilot') });
+  voiceRouter.registerCommand({ id: 'new-amp', aliases: ['new amp', 'open amp', 'start amp', 'amp agent'], action: () => spawnInActiveProject('amp') });
+  voiceRouter.registerCommand({ id: 'new-continue', aliases: ['new continue', 'open continue', 'start continue', 'continue agent'], action: () => spawnInActiveProject('continue') });
+  voiceRouter.registerCommand({ id: 'new-cursor', aliases: ['new cursor', 'open cursor', 'start cursor', 'cursor agent'], action: () => spawnInActiveProject('cursor') });
+  voiceRouter.registerCommand({ id: 'new-crush', aliases: ['new crush', 'open crush', 'start crush', 'crush agent'], action: () => spawnInActiveProject('crush') });
+  voiceRouter.registerCommand({ id: 'new-qwen', aliases: ['new qwen', 'open qwen', 'start qwen', 'qwen agent', 'new when', 'open when'], action: () => spawnInActiveProject('qwen') });
   voiceRouter.registerCommand({ id: 'close-pane', aliases: ['close pane', 'close terminal', 'close this', 'close tab'], action: () => closeFocused() });
   voiceRouter.registerCommand({ id: 'toggle-sidebar', aliases: ['toggle sidebar', 'hide sidebar', 'show sidebar', 'sidebar'], action: () => projectSidebar.toggleCollapse() });
   voiceRouter.registerCommand({ id: 'command-palette', aliases: ['command palette', 'commands', 'open commands', 'show commands'], action: () => commandPalette.toggle() });
@@ -911,6 +974,44 @@ function main(): void {
   commandPalette.registerDynamic('codex', [
     { id: 'codex-approve', label: 'Codex: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
     { id: 'codex-reject', label: 'Codex: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('aider', [
+    { id: 'aider-yes', label: 'Aider: Confirm (Yes)', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'aider-no', label: 'Aider: Decline (No)', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+    { id: 'aider-undo', label: 'Aider: Undo Last Change', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('/undo\n') },
+    { id: 'aider-diff', label: 'Aider: Show Diff', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('/diff\n') },
+  ]);
+  commandPalette.registerDynamic('opencode', [
+    { id: 'opencode-approve', label: 'OpenCode: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'opencode-reject', label: 'OpenCode: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('cline', [
+    { id: 'cline-approve', label: 'Cline: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'cline-reject', label: 'Cline: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('copilot', [
+    { id: 'copilot-approve', label: 'Copilot: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'copilot-reject', label: 'Copilot: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('amp', [
+    { id: 'amp-approve', label: 'Amp: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'amp-reject', label: 'Amp: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('continue', [
+    { id: 'continue-approve', label: 'Continue: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'continue-reject', label: 'Continue: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('cursor', [
+    { id: 'cursor-approve', label: 'Cursor: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'cursor-reject', label: 'Cursor: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('crush', [
+    { id: 'crush-approve', label: 'Crush: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'crush-reject', label: 'Crush: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('qwen', [
+    { id: 'qwen-approve', label: 'Qwen: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'qwen-reject', label: 'Qwen: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
   ]);
 
   // Tag terminal-specific commands with context

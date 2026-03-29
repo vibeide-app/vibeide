@@ -1,7 +1,7 @@
-export type AgentType = 'claude' | 'gemini' | 'codex' | 'shell' | 'custom';
+export type AgentType = 'claude' | 'gemini' | 'codex' | 'aider' | 'opencode' | 'cline' | 'copilot' | 'amp' | 'continue' | 'cursor' | 'crush' | 'qwen' | 'shell' | 'custom';
 export type AgentStatus = 'starting' | 'running' | 'needs-input' | 'idle' | 'complete' | 'error' | 'stopped';
 
-export const SPAWNABLE_AGENT_TYPES = new Set<AgentType>(['claude', 'gemini', 'codex', 'shell']);
+export const SPAWNABLE_AGENT_TYPES = new Set<AgentType>(['claude', 'gemini', 'codex', 'aider', 'opencode', 'cline', 'copilot', 'amp', 'continue', 'cursor', 'crush', 'qwen', 'shell']);
 
 export interface AgentConfig {
   readonly type: AgentType;
@@ -27,4 +27,13 @@ export interface AgentAvailability {
   readonly claude: boolean;
   readonly gemini: boolean;
   readonly codex: boolean;
+  readonly aider: boolean;
+  readonly opencode: boolean;
+  readonly cline: boolean;
+  readonly copilot: boolean;
+  readonly amp: boolean;
+  readonly continue: boolean;
+  readonly cursor: boolean;
+  readonly crush: boolean;
+  readonly qwen: boolean;
 }

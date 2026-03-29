@@ -133,7 +133,7 @@ export interface VibeIDEApi {
     onStatus(callback: (event: AgentStatusEvent) => void): () => void;
     onExit(callback: (event: AgentExitEvent) => void): () => void;
     onVersion(callback: (event: { agentId: string; version: string }) => void): () => void;
-    onAvailabilityChanged(callback: (availability: { claude: boolean; gemini: boolean; codex: boolean }) => void): () => void;
+    onAvailabilityChanged(callback: (availability: Record<string, boolean>) => void): () => void;
   };
   project: {
     list(): Promise<ProjectInfo[]>;

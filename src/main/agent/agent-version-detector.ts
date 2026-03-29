@@ -5,6 +5,15 @@ const CLI_COMMANDS: Partial<Record<AgentType, string>> = {
   claude: 'claude',
   gemini: 'gemini',
   codex: 'codex',
+  aider: 'aider',
+  opencode: 'opencode',
+  cline: 'cline',
+  copilot: 'copilot',
+  amp: 'amp',
+  continue: 'cn',
+  cursor: 'cursor-agent',
+  crush: 'crush',
+  qwen: 'qwen',
 };
 
 const VERSION_TIMEOUT_MS = 5000;
@@ -37,27 +46,35 @@ function checkCommand(cmd: string): Promise<boolean> {
 }
 
 export async function checkAvailability(): Promise<AgentAvailability> {
-  const [claude, gemini, codex] = await Promise.all([
+  const [claude, gemini, codex, aider, opencode, cline, copilot, amp, cn, cursor, crush, qwen] = await Promise.all([
     checkCommand('claude'),
     checkCommand('gemini'),
     checkCommand('codex'),
+    checkCommand('aider'),
+    checkCommand('opencode'),
+    checkCommand('cline'),
+    checkCommand('copilot'),
+    checkCommand('amp'),
+    checkCommand('cn'),
+    checkCommand('cursor-agent'),
+    checkCommand('crush'),
+    checkCommand('qwen'),
   ]);
-  return { claude, gemini, codex };
+  return { claude, gemini, codex, aider, opencode, cline, copilot, amp, continue: cn, cursor, crush, qwen };
 }
 
 export function startPeriodicCheck(
   callback: (availability: AgentAvailability) => void,
   intervalMs = 30_000,
 ): () => void {
-  let previous: AgentAvailability = { claude: false, gemini: false, codex: false };
+  let previous: AgentAvailability = { claude: false, gemini: false, codex: false, aider: false, opencode: false, cline: false, copilot: false, amp: false, continue: false, cursor: false, crush: false, qwen: false };
 
   const check = async () => {
     const current = await checkAvailability();
-    if (
-      current.claude !== previous.claude ||
-      current.gemini !== previous.gemini ||
-      current.codex !== previous.codex
-    ) {
+    const changed = (Object.keys(current) as Array<keyof AgentAvailability>).some(
+      (k) => current[k] !== previous[k],
+    );
+    if (changed) {
       previous = current;
       callback(current);
     }
