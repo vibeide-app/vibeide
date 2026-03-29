@@ -15,7 +15,10 @@ import { FileFinder } from './file/file-finder';
 import { FileSearch } from './file/file-search';
 import { VoiceCapture } from './voice/voice-capture';
 import { setInstallCallback } from './ui/agent-install-dialog';
-import { playNotificationSound, loadSoundConfig } from './ui/notification-sounds';
+import { playNotificationSound } from './ui/notification-sounds';
+import { loadNotificationConfig, getNotificationConfig } from './ui/notification-config';
+import { toastManager } from './ui/toast-manager';
+import { NotificationPreferences } from './ui/notification-preferences';
 import { VoiceRouter } from './voice/voice-router';
 import type { ProjectInfo, AppState } from '../../shared/ipc-types';
 import type { AgentType } from '../../shared/agent-types';
@@ -317,44 +320,78 @@ function main(): void {
     workspaceSwitcher.handleAgentStatus(event.agentId, event.status);
     projectSidebar.updateAgentStatus(event.agentId, event.status);
 
-    // Sound notification
-    if (event.status === 'needs-input') playNotificationSound('needs-input');
-
-    // Desktop notification for needs-input on non-active projects
     if (event.status === 'needs-input') {
-      const activeId = workspaceSwitcher.getActiveProjectId();
-      for (const ws of getAllWorkspaces()) {
-        if (ws.hasAgent(event.agentId) && ws.projectId !== activeId) {
-          window.api.notify.show({
-            title: 'Agent needs input',
-            body: `An agent in another project is waiting for your response`,
-            urgency: 'critical',
-          });
-          break;
+      const config = getNotificationConfig();
+
+      // Sound notification
+      playNotificationSound('needs-input');
+
+      // Toast notification
+      const agentInfo = findAgentInfo(event.agentId);
+      if (agentInfo) {
+        toastManager.show({
+          event: 'needs-input',
+          agentName: agentInfo.config.label || agentInfo.config.type,
+          agentType: agentInfo.config.type,
+          message: 'Waiting for your input',
+          onClick: () => focusAgentTerminal(agentInfo.id),
+        });
+      }
+
+      // Desktop notification for non-active projects
+      if (config.events['needs-input'].desktop) {
+        const activeId = workspaceSwitcher.getActiveProjectId();
+        for (const ws of getAllWorkspaces()) {
+          if (ws.hasAgent(event.agentId) && ws.projectId !== activeId) {
+            window.api.notify.show({
+              title: 'Agent needs input',
+              body: 'An agent in another project is waiting for your response',
+              urgency: 'critical',
+            });
+            break;
+          }
         }
       }
     }
   });
 
   const unsubExit = window.api.agent.onExit((event) => {
+    // Capture agent info before status update (which may remove it from tracked map)
+    const agentInfo = findAgentInfo(event.agentId);
+
     workspaceSwitcher.handleAgentExit(event.agentId, event.exitCode);
     const exitStatus = event.exitCode === 0 ? 'complete' : 'error';
     projectSidebar.updateAgentStatus(event.agentId, exitStatus as any);
 
+    const config = getNotificationConfig();
+
     // Sound notification
     playNotificationSound(exitStatus as 'complete' | 'error');
 
-    // Desktop notification for agent completion/error
-    const activeId = workspaceSwitcher.getActiveProjectId();
-    for (const ws of getAllWorkspaces()) {
-      if (ws.hasAgent(event.agentId) && ws.projectId !== activeId) {
-        const label = event.exitCode === 0 ? 'completed' : `exited with code ${event.exitCode}`;
-        window.api.notify.show({
-          title: `Agent ${label}`,
-          body: `An agent in another project has ${label}`,
-          urgency: event.exitCode === 0 ? 'low' : 'normal',
-        });
-        break;
+    // Toast notification
+    if (agentInfo) {
+      toastManager.show({
+        event: exitStatus as 'complete' | 'error',
+        agentName: agentInfo.config.label || agentInfo.config.type,
+        agentType: agentInfo.config.type,
+        message: event.exitCode === 0 ? 'Completed successfully' : `Exited with error (code ${event.exitCode})`,
+        onClick: () => focusAgentTerminal(agentInfo.id),
+      });
+    }
+
+    // Desktop notification for non-active projects
+    if (config.events[exitStatus as 'complete' | 'error'].desktop) {
+      const activeId = workspaceSwitcher.getActiveProjectId();
+      for (const ws of getAllWorkspaces()) {
+        if (ws.hasAgent(event.agentId) && ws.projectId !== activeId) {
+          const label = event.exitCode === 0 ? 'completed' : `exited with code ${event.exitCode}`;
+          window.api.notify.show({
+            title: `Agent ${label}`,
+            body: `An agent in another project has ${label}`,
+            urgency: event.exitCode === 0 ? 'low' : 'normal',
+          });
+          break;
+        }
       }
     }
   });
@@ -510,6 +547,7 @@ function main(): void {
   voiceRouter.registerCommand({ id: 'zoom-reset', aliases: ['reset zoom', 'normal size', 'default size'], action: () => window.api.window.zoomReset() });
   voiceRouter.registerCommand({ id: 'font-increase', aliases: ['bigger font', 'increase font', 'larger font', 'font bigger'], action: () => changeTerminalFontSize(1) });
   voiceRouter.registerCommand({ id: 'font-decrease', aliases: ['smaller font', 'decrease font', 'font smaller'], action: () => changeTerminalFontSize(-1) });
+  voiceRouter.registerCommand({ id: 'notification-prefs', aliases: ['notification settings', 'notification preferences', 'sound settings'], action: () => notificationPrefs.toggle() });
 
   // Theme commands
   const themeNames = ['tokyo night', 'tokyo night light', 'solarized dark', 'dracula', 'nord', 'gruvbox dark', 'one dark', 'catppuccin mocha', 'monokai'];
@@ -549,7 +587,16 @@ function main(): void {
 
   // Load voice settings from disk
   voiceCapture.ensureSettingsLoaded();
-  loadSoundConfig();
+  loadNotificationConfig();
+
+  // Notification preferences
+  const notificationPrefs = new NotificationPreferences();
+  commandPalette.register({
+    id: 'notification-preferences',
+    label: 'Notification Preferences',
+    category: 'General',
+    action: () => notificationPrefs.toggle(),
+  });
 
   commandPalette.register({
     id: 'voice-toggle', category: 'Voice',
@@ -781,6 +828,40 @@ function main(): void {
 
   function getAllWorkspaces() {
     return workspaceSwitcher.getAllWorkspaces();
+  }
+
+  function findAgentInfo(agentId: string) {
+    for (const ws of getAllWorkspaces()) {
+      const tracked = ws.getTrackedAgents();
+      const entry = tracked.get(agentId);
+      if (entry) return entry.info;
+    }
+    return undefined;
+  }
+
+  function focusAgentTerminal(agentId: string) {
+    for (const ws of getAllWorkspaces()) {
+      const tracked = ws.getTrackedAgents();
+      const entry = tracked.get(agentId);
+      if (entry) {
+        // If already active, just focus
+        if (ws.isActive()) {
+          ws.focusTerminal(entry.info.sessionId);
+        } else {
+          // Need to switch project — look up project info
+          window.api.project.list().then((projects) => {
+            const project = projects.find((p) => p.id === ws.projectId);
+            if (project) {
+              workspaceSwitcher.switchTo(project).then(() => {
+                projectSidebar.setActiveProject(ws.projectId);
+                ws.focusTerminal(entry.info.sessionId);
+              });
+            }
+          });
+        }
+        return;
+      }
+    }
   }
 
   async function applyPresetToActive(presetId: string): Promise<void> {

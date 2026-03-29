@@ -1,6 +1,6 @@
 # VibeIDE — Goals, Phases & Tasks
 
-> Last updated: 2026-03-28
+> Last updated: 2026-03-29
 
 ---
 
@@ -11,11 +11,11 @@
 Be the first tool that lets vibe coders manage 3-7 projects with multiple AI agents each in a single window.
 
 - **Phase 1 (Electron MVP)** — current
-  - [ ] Project-centric sidebar with collapsible project groups
-  - [ ] Agent list grouped under projects (not flat)
-  - [ ] Traffic-light status rollup per project (green/yellow/red/blue)
-  - [ ] Notification badges for unread events per project
-  - [ ] Instant project switching (pre-rendered in background)
+  - [x] Project-centric sidebar with collapsible project groups
+  - [x] Agent list grouped under projects (not flat)
+  - [x] Traffic-light status rollup per project (green/yellow/red/blue)
+  - [x] Notification badges for unread events per project
+  - [x] Instant project switching (pre-rendered in background)
 - **Phase 2 (Native Rust)**
   - [ ] Port sidebar to native UI (egui/iced overlay)
   - [ ] Background state tracking for inactive projects
@@ -33,21 +33,21 @@ Every pane surfaces real-time agent state so the user never reads raw output to 
   - [x] "Needs input" amber/yellow urgency indicator
   - [x] Auto-detect agent type (Claude, Codex, Gemini) with branded icons
   - [x] Kill button per agent
-  - [ ] Agent-specific needs-input detection:
-    - [ ] Claude Code: detect permission prompts ("Allow", "Approve", tool use approval, plan confirmation)
-    - [ ] Claude Code: detect "Do you want to proceed?" and similar prompts
-    - [ ] Gemini CLI: detect input prompts and confirmation requests
-    - [ ] Codex: detect approval/confirmation patterns
-    - [ ] Detect agent waiting for user response (blocked state)
-    - [ ] Parse ANSI-styled prompts (colored/bold text in agent output)
-  - [ ] Configurable notification sounds per event type (needs-input, complete, error)
-  - [ ] One-click jump from sidebar notification badge to the specific agent terminal
-  - [ ] In-app toast notifications (top-right corner, 5s auto-dismiss)
-  - [ ] Per-event notification preferences UI (visual/sound/focus-steal toggles)
-  - [ ] Agent installation detection and guided install:
-    - [ ] Check if agent CLI is available on PATH before spawning (claude, gemini, codex)
-    - [ ] If not installed, show install prompt with instructions and install command
-    - [ ] Link to official install docs for each agent
+  - [x] Agent-specific needs-input detection:
+    - [x] Claude Code: detect permission prompts ("Allow", "Approve", tool use approval, plan confirmation)
+    - [x] Claude Code: detect "Do you want to proceed?" and similar prompts
+    - [x] Gemini CLI: detect input prompts and confirmation requests
+    - [x] Codex: detect approval/confirmation patterns
+    - [x] Detect agent waiting for user response (blocked state)
+    - [x] Parse ANSI-styled prompts (colored/bold text in agent output)
+  - [x] Configurable notification sounds per event type (needs-input, complete, error)
+  - [x] One-click jump from sidebar notification badge to the specific agent terminal
+  - [x] In-app toast notifications (top-right corner, 5s auto-dismiss)
+  - [x] Per-event notification preferences UI (visual/sound/focus-steal toggles)
+  - [x] Agent installation detection and guided install:
+    - [x] Check if agent CLI is available on PATH before spawning (claude, gemini, codex)
+    - [x] If not installed, show install prompt with instructions and install command
+    - [x] Link to official install docs for each agent
     - [ ] Detect installed version and show in agent status bar
     - [ ] Auto-detect newly installed agents (periodic PATH check)
 - **Phase 2 (Native Rust)**
@@ -66,10 +66,10 @@ Integrated local Whisper STT with cloud fallback. Linux market differentiator.
   - [ ] Validate latency <2s on Linux (PulseAudio/PipeWire)
   - [ ] Validate small/base model accuracy for developer commands
 - **Phase 1 (Electron MVP)**
-  - [ ] Push-to-talk hotkey (configurable)
-  - [ ] Voice transcript bar (overlay, auto-dismiss)
-  - [ ] Context-aware routing: app command vs. agent prompt
-  - [ ] Command prefix detection ("vibeide split vertical")
+  - [x] Push-to-talk hotkey (configurable)
+  - [x] Voice transcript bar (overlay, auto-dismiss)
+  - [x] Context-aware routing: app command vs. agent prompt
+  - [x] Command prefix detection ("vibeide split vertical")
 - **Phase 2 (Native Rust)**
   - [ ] Native whisper-rs integration (no Node overhead)
   - [ ] Cloud STT fallback (Deepgram/OpenAI)
@@ -110,11 +110,11 @@ Sub-5ms input latency, 120fps, <150MB memory with 4 agents.
 Close and reopen with zero setup cost — layout, agents, scrollback all restored.
 
 - **Phase 1 (Electron MVP)**
-  - [ ] Save/restore window position and size
-  - [ ] Save/restore project list and active project
-  - [ ] Save/restore agent configurations per project
+  - [x] Save/restore window position and size
+  - [x] Save/restore project list and active project
+  - [x] Save/restore agent configurations per project
   - [ ] Save/restore terminal scrollback buffers
-  - [ ] Save/restore pane layout (splits, sizes)
+  - [x] Save/restore pane layout (splits, sizes)
 - **Phase 2 (Native Rust)**
   - [ ] Binary serialization for fast restore (<500ms startup)
   - [ ] PTY reconnection for running agents
@@ -127,11 +127,11 @@ Close and reopen with zero setup cost — layout, agents, scrollback all restore
 Lightweight syntax-highlighted viewer for code review. Not a full editor.
 
 - **Phase 1 (Electron MVP)**
-  - [ ] `Ctrl+P` fuzzy file finder scoped to current project
-  - [ ] Syntax-highlighted read-only viewer (Monaco read-only or lighter)
-  - [ ] Git diff view (agent changes vs base branch)
-  - [ ] `Ctrl+Shift+F` cross-file search (ripgrep-backed)
-  - [ ] Temporary overlay pane (dismiss with Escape)
+  - [x] `Ctrl+P` fuzzy file finder scoped to current project
+  - [x] Syntax-highlighted read-only viewer (CodeMirror 6)
+  - [x] Git diff view (agent changes vs base branch)
+  - [x] `Ctrl+Shift+H` cross-file search (ripgrep-backed)
+  - [x] Temporary overlay pane (dismiss with Escape)
 - **Phase 2 (Native Rust)**
   - [ ] tree-sitter syntax highlighting
   - [ ] GPU-rendered text viewer
@@ -144,11 +144,11 @@ Lightweight syntax-highlighted viewer for code review. Not a full editor.
 Everything reachable via keybinding or fuzzy-searchable palette in <50ms.
 
 - **Phase 1 (Electron MVP)**
-  - [ ] Fuzzy matching (replace `includes()` with proper fuzzy)
-  - [ ] Categorized commands (Agent, Layout, File, Theme)
-  - [ ] Recently-used commands at top
+  - [x] Fuzzy matching (replace `includes()` with proper fuzzy)
+  - [x] Categorized commands (Agent, Layout, File, Theme)
+  - [x] Recently-used commands at top
   - [ ] Context-aware filtering (commands change by focused pane)
-  - [ ] Inline keyboard shortcut display
+  - [x] Inline keyboard shortcut display
   - [ ] Agent-registered custom commands
 - **Phase 2 (Native Rust)**
   - [ ] GPU-rendered command palette overlay
@@ -162,12 +162,12 @@ Everything reachable via keybinding or fuzzy-searchable palette in <50ms.
 Currently only 1 light theme (Tokyo Night Light). Add at least 3 more for users who prefer light mode.
 
 - **Phase 1 (Electron MVP)**
-  - [ ] Solarized Light theme
-  - [ ] GitHub Light theme
-  - [ ] Catppuccin Latte theme (light variant)
+  - [x] Solarized Light theme
+  - [x] GitHub Light theme
+  - [x] Catppuccin Latte theme (light variant)
   - [ ] Ensure all UI components (sidebar, status bars, command palette, file viewer, Source Control, commit graph) render correctly in light themes
-  - [ ] Ensure terminal WebGL renderer handles light backgrounds
-  - [ ] Light/dark mode toggle in command palette and settings
+  - [x] Ensure terminal WebGL renderer handles light backgrounds
+  - [x] Light/dark mode toggle in command palette and settings
 
 ---
 
@@ -176,7 +176,7 @@ Currently only 1 light theme (Tokyo Night Light). Add at least 3 more for users 
 Ship Linux first, then macOS and Windows.
 
 - **Phase 1 (Electron MVP)**
-  - [ ] Linux .deb and .AppImage packages
+  - [x] Linux .deb and .AppImage packages
   - [ ] macOS .dmg package
   - [ ] Windows .exe installer
   - [ ] CI/CD pipeline for all three platforms
@@ -209,10 +209,10 @@ Extensibility via wasmtime-based plugins.
 Every feature measured against: does it help the vibe coder review faster?
 
 - **Phase 1 (Electron MVP)**
-  - [ ] Priority-based notification system (needs-input > error > complete > info)
-  - [ ] Visual triage: which agent to review first
-  - [ ] One-click jump to agent output from sidebar notification
-  - [ ] Configurable notification sounds per event type
+  - [x] Priority-based notification system (needs-input > error > complete > info)
+  - [x] Visual triage: which agent to review first
+  - [x] One-click jump to agent output from sidebar notification
+  - [x] Configurable notification sounds per event type
 - **Phase 2 (Native Rust)**
   - [ ] Smart review queue: agents sorted by priority/completion time
   - [ ] Agent output summary (collapsible, key changes highlighted)
