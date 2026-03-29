@@ -1,6 +1,8 @@
 import { TerminalManager } from '../terminal/terminal-manager';
 import { LayoutManager } from '../layout/layout-manager';
 import { AgentStatusBar } from '../agent/agent-status-bar';
+import { AGENT_INSTALL_INFO } from '../../../shared/agent-install-info';
+import { showAgentInstallDialog } from '../ui/agent-install-dialog';
 import type { AgentInfo, AgentType } from '../../../shared/agent-types';
 import type { ProjectWorkspaceState } from '../../../shared/ipc-types';
 import type { LayoutNode, LeafNode, SplitNode } from '../../../shared/layout-types';
@@ -83,6 +85,18 @@ export class ProjectWorkspace {
   }
 
   async spawnAgent(type: AgentType, direction?: 'horizontal' | 'vertical'): Promise<AgentInfo | null> {
+    // Check if agent is installed (skip for shell — always available)
+    if (type !== 'shell') {
+      const installInfo = AGENT_INSTALL_INFO[type];
+      if (installInfo) {
+        const check = await window.api.agent.checkInstalled(installInfo.command);
+        if (!check.installed) {
+          showAgentInstallDialog(type, installInfo);
+          return null;
+        }
+      }
+    }
+
     try {
       const info: AgentInfo = await window.api.agent.spawn({
         type,

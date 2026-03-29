@@ -13,6 +13,7 @@ import { LAYOUT_PRESETS } from './layout/layout-presets';
 import { FileViewer } from './file/file-viewer';
 import { FileFinder } from './file/file-finder';
 import { VoiceCapture } from './voice/voice-capture';
+import { setInstallCallback } from './ui/agent-install-dialog';
 import { VoiceRouter } from './voice/voice-router';
 import type { ProjectInfo, AppState } from '../../shared/ipc-types';
 import type { AgentType } from '../../shared/agent-types';
@@ -278,6 +279,19 @@ function main(): void {
   // Refresh git badges on startup and every 15 seconds
   setTimeout(refreshGitBadges, 2000);
   setInterval(refreshGitBadges, 15_000);
+
+  // Agent install callback — spawns a shell terminal and runs the install command
+  setInstallCallback(async (installCommand: string) => {
+    const workspace = workspaceSwitcher.getActiveWorkspace();
+    if (!workspace) return;
+    const info = await workspace.spawnAgent('shell');
+    if (info) {
+      // Small delay to let the terminal initialize, then send the install command
+      setTimeout(() => {
+        window.api.pty.write({ sessionId: info.sessionId, data: installCommand + '\n' });
+      }, 500);
+    }
+  });
 
   // Agent event listeners
   const unsubStatus = window.api.agent.onStatus((event) => {

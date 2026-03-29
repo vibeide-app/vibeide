@@ -62,7 +62,7 @@ export class AgentManager {
         return;
       }
 
-      const needsInput = detectNeedsInput(outputBuffer.getRecent());
+      const needsInput = detectNeedsInput(outputBuffer.getRecent(), agent.config.type);
       const timeSinceOutput = Date.now() - lastOutputTime;
 
       if (needsInput && agent.status !== 'needs-input') {

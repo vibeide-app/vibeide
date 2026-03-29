@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
     },
   },
   agent: {
+    checkInstalled: (command: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_CHECK_INSTALLED, command),
     spawn: (request: unknown) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_SPAWN, request),
     kill: (agentId: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_KILL, agentId),
     list: () => ipcRenderer.invoke(IPC_CHANNELS.AGENT_LIST),

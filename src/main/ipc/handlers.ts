@@ -550,6 +550,29 @@ export function registerIpcHandlers(
     } catch (error) { console.error('[IPC][git:log]', error); return { error: 'log_failed' }; }
   });
 
+  // Agent install detection
+  ipcMain.handle(IPC_CHANNELS.AGENT_CHECK_INSTALLED, async (_event, raw: unknown) => {
+    try {
+      if (typeof raw !== 'string') return { installed: false };
+      const { execFile } = await import('node:child_process');
+      return new Promise<{ installed: boolean; version?: string }>((resolve) => {
+        execFile('which', [raw], { timeout: 5000 }, (error, stdout) => {
+          if (error || !stdout.trim()) {
+            resolve({ installed: false });
+          } else {
+            // Try to get version
+            execFile(raw, ['--version'], { timeout: 5000 }, (vErr, vOut) => {
+              const version = vErr ? undefined : vOut.trim().split('\n')[0];
+              resolve({ installed: true, version });
+            });
+          }
+        });
+      });
+    } catch {
+      return { installed: false };
+    }
+  });
+
   // Recursive file listing (respects .gitignore patterns)
   ipcMain.handle(IPC_CHANNELS.FILE_LIST_ALL, async (_event, raw: unknown) => {
     try {

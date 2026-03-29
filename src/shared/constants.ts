@@ -36,6 +36,7 @@ export const IPC_CHANNELS = {
   GIT_PULL: 'git:pull',
   GIT_PUSH: 'git:push',
   GIT_AHEAD_BEHIND: 'git:ahead-behind',
+  AGENT_CHECK_INSTALLED: 'agent:check-installed',
   FILE_LIST_DIR: 'file:list-dir',
   FILE_LIST_ALL: 'file:list-all',
   FILE_READ: 'file:read',

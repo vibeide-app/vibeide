@@ -1647,6 +1647,132 @@
 .voice-api-key-save:active { transform: scale(0.97); }
 
 /* ============================================
+   Agent install dialog
+   ============================================ */
+.agent-install-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlay-in var(--transition-normal);
+}
+
+.agent-install-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: var(--space-6);
+  min-width: 420px;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 16px 48px rgba(0, 0, 0, 0.4);
+  animation: panel-in var(--transition-smooth);
+}
+
+.agent-install-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.agent-install-desc {
+  color: var(--fg-dim);
+  font-size: var(--font-base);
+  margin-bottom: var(--space-3);
+  line-height: var(--leading-normal);
+}
+
+.agent-install-cmd-label {
+  color: var(--fg-dim);
+  font-size: var(--font-sm);
+  margin-bottom: var(--space-1);
+}
+
+.agent-install-cmd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.agent-install-cmd code {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--font-base);
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.agent-install-copy {
+  padding: 3px 10px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg-dim);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.agent-install-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+.agent-install-buttons {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.agent-install-docs-btn {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg-dim);
+  font-size: var(--font-base);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.agent-install-docs-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.agent-install-close-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: var(--bg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.agent-install-close-btn:hover { opacity: 0.85; }
+
+.agent-install-run-btn {
+  padding: var(--space-2) var(--space-5);
+  background: var(--success);
+  border: none;
+  border-radius: 6px;
+  color: var(--bg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.agent-install-run-btn:hover { opacity: 0.85; }
+
+/* ============================================
    Restart overlay
    ============================================ */
 .restart-overlay {

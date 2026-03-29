@@ -118,6 +118,7 @@ export interface VibeIDEApi {
     onData(callback: (event: PtyDataEvent) => void): () => void;
   };
   agent: {
+    checkInstalled(command: string): Promise<{ installed: boolean; version?: string }>;
     spawn(request: AgentSpawnRequest): Promise<AgentInfo>;
     kill(agentId: string): Promise<void>;
     list(): Promise<AgentInfo[]>;

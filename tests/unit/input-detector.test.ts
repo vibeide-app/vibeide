@@ -58,15 +58,59 @@ describe('detectNeedsInput', () => {
 
   describe('detects Claude Code prompts', () => {
     it('detects "Do you want to proceed"', () => {
-      expect(detectNeedsInput('Do you want to proceed with these changes?')).toBe(true);
+      expect(detectNeedsInput('Do you want to proceed with these changes?', 'claude')).toBe(true);
     });
 
     it('detects "Approve"', () => {
-      expect(detectNeedsInput('Approve this edit?')).toBe(true);
+      expect(detectNeedsInput('Approve this edit?', 'claude')).toBe(true);
     });
 
     it('detects "Allow"', () => {
-      expect(detectNeedsInput('Allow this tool use?')).toBe(true);
+      expect(detectNeedsInput('Allow this tool use?', 'claude')).toBe(true);
+    });
+
+    it('detects "(y)es / (n)o" pattern', () => {
+      expect(detectNeedsInput('(y)es / (n)o', 'claude')).toBe(true);
+    });
+
+    it('detects "wants to use Bash" multi-line', () => {
+      expect(detectNeedsInput('Some output\nClaude wants to use Bash\nAllow? (y/n)', 'claude')).toBe(true);
+    });
+
+    it('detects Deny/Allow pattern', () => {
+      expect(detectNeedsInput('Deny  Allow', 'claude')).toBe(true);
+    });
+
+    it('detects "(a)lways / (y)es / (n)o"', () => {
+      expect(detectNeedsInput('(a)lways / (y)es / (n)o', 'claude')).toBe(true);
+    });
+  });
+
+  describe('detects Gemini CLI prompts', () => {
+    it('detects "Shall I" prompt', () => {
+      expect(detectNeedsInput('Shall I apply these changes?', 'gemini')).toBe(true);
+    });
+
+    it('detects "Execute" prompt', () => {
+      expect(detectNeedsInput('Execute this command?', 'gemini')).toBe(true);
+    });
+
+    it('detects "Accept suggestion" prompt', () => {
+      expect(detectNeedsInput('Accept this suggestion?', 'gemini')).toBe(true);
+    });
+  });
+
+  describe('detects Codex prompts', () => {
+    it('detects approve/deny pattern', () => {
+      expect(detectNeedsInput('approve or deny', 'codex')).toBe(true);
+    });
+
+    it('detects "Run command" prompt', () => {
+      expect(detectNeedsInput('Run this command?', 'codex')).toBe(true);
+    });
+
+    it('detects "[approve]" pattern', () => {
+      expect(detectNeedsInput('[approve]', 'codex')).toBe(true);
     });
   });
 
