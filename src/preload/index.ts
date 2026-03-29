@@ -38,6 +38,18 @@ contextBridge.exposeInMainWorld('api', {
         ipcRenderer.removeListener(IPC_CHANNELS.AGENT_EXIT, handler);
       };
     },
+    onVersion: (callback: (event: { agentId: string; version: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { agentId: string; version: string }) =>
+        callback(data);
+      ipcRenderer.on(IPC_CHANNELS.AGENT_VERSION, handler);
+      return () => { ipcRenderer.removeListener(IPC_CHANNELS.AGENT_VERSION, handler); };
+    },
+    onAvailabilityChanged: (callback: (availability: { claude: boolean; gemini: boolean; codex: boolean }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { claude: boolean; gemini: boolean; codex: boolean }) =>
+        callback(data);
+      ipcRenderer.on(IPC_CHANNELS.AGENT_AVAILABILITY_CHANGED, handler);
+      return () => { ipcRenderer.removeListener(IPC_CHANNELS.AGENT_AVAILABILITY_CHANGED, handler); };
+    },
   },
   project: {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_LIST),
@@ -114,5 +126,10 @@ contextBridge.exposeInMainWorld('api', {
   state: {
     load: () => ipcRenderer.invoke(IPC_CHANNELS.STATE_LOAD),
     save: (state: unknown) => ipcRenderer.invoke(IPC_CHANNELS.STATE_SAVE, state),
+  },
+  scrollback: {
+    save: (sessionId: string, data: string) => ipcRenderer.invoke(IPC_CHANNELS.SCROLLBACK_SAVE, { sessionId, data }),
+    load: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.SCROLLBACK_LOAD, sessionId),
+    delete: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.SCROLLBACK_DELETE, sessionId),
   },
 });

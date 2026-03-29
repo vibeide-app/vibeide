@@ -23,6 +23,7 @@ export class AgentStatusBar {
   private readonly indicatorEl: HTMLElement;
   private readonly statusTextEl: HTMLElement;
   private readonly uptimeEl: HTMLElement;
+  private readonly versionEl: HTMLElement;
   private uptimeInterval: ReturnType<typeof setInterval> | null = null;
   private readonly startedAt: number;
   private readonly onKill: () => void;
@@ -42,6 +43,12 @@ export class AgentStatusBar {
     const typeLabel = document.createElement('span');
     typeLabel.className = 'status-bar-type';
     typeLabel.textContent = agentInfo.config.label || agentInfo.config.type;
+
+    this.versionEl = document.createElement('span');
+    this.versionEl.className = 'status-bar-version';
+    if (agentInfo.version) {
+      this.versionEl.textContent = 'v' + agentInfo.version;
+    }
 
     this.indicatorEl = createStatusIndicator(agentInfo.status);
 
@@ -88,6 +95,7 @@ export class AgentStatusBar {
     this.element.appendChild(this.indicatorEl);
     this.element.appendChild(agentIcon);
     this.element.appendChild(typeLabel);
+    this.element.appendChild(this.versionEl);
     this.element.appendChild(this.statusTextEl);
     this.element.appendChild(this.uptimeEl);
     this.element.appendChild(splitH);
@@ -118,6 +126,10 @@ export class AgentStatusBar {
     if (status === 'stopped' || status === 'error' || status === 'complete') {
       this.stopUptimeCounter();
     }
+  }
+
+  updateVersion(version: string): void {
+    this.versionEl.textContent = 'v' + version;
   }
 
   dispose(): void {

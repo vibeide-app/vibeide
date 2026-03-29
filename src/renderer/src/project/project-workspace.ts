@@ -283,6 +283,19 @@ export class ProjectWorkspace {
     } catch (error) {
       console.error('[ProjectWorkspace] Failed to save state:', error);
     }
+
+    // Save scrollback for each terminal (best-effort)
+    for (const tracked of this.tracked.values()) {
+      try {
+        const panel = this.terminalManager.getTerminal(tracked.info.sessionId);
+        if (panel) {
+          const scrollback = panel.getScrollback();
+          if (scrollback) {
+            await window.api.scrollback.save(tracked.info.sessionId, scrollback);
+          }
+        }
+      } catch { /* scrollback save is best-effort */ }
+    }
   }
 
   async restoreState(): Promise<boolean> {
@@ -316,6 +329,20 @@ export class ProjectWorkspace {
 
       const remappedLayout = remapSessionIds(state.layout, sessionIdMap);
       this.layoutManager.restoreLayout(remappedLayout);
+
+      // Restore scrollback from old session IDs (best-effort)
+      for (const [oldId, newId] of sessionIdMap) {
+        try {
+          const data = await window.api.scrollback.load(oldId);
+          if (data) {
+            const panel = this.terminalManager.getTerminal(newId);
+            if (panel) panel.loadScrollback(data);
+          }
+          // Clean up old scrollback file
+          await window.api.scrollback.delete(oldId);
+        } catch { /* scrollback restore is best-effort */ }
+      }
+
       return true;
     } catch (error) {
       console.error('[ProjectWorkspace] Failed to restore state:', error);

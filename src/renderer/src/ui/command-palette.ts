@@ -1,10 +1,17 @@
 export type CommandCategory = 'Agent' | 'Layout' | 'File' | 'Theme' | 'Git' | 'Voice' | 'View' | 'General';
+export type CommandContext = 'any' | 'terminal' | 'agent';
+
+export interface PaletteContext {
+  readonly hasFocusedTerminal: boolean;
+  readonly focusedAgentType: string | null;
+}
 
 interface Command {
   readonly id: string;
   readonly label: string;
   readonly shortcut?: string;
   readonly category?: CommandCategory;
+  readonly context?: CommandContext;
   readonly action: () => void;
 }
 
@@ -77,11 +84,13 @@ function highlightMatches(text: string, indices: readonly number[]): HTMLElement
 
 export class CommandPalette {
   private readonly commands: Command[] = [];
+  private readonly dynamicCommands = new Map<string, Command[]>();
   private visible = false;
   private selectedIndex = 0;
   private filterText = '';
   private overlayEl: HTMLElement | null = null;
   private recentIds: string[] = [];
+  private context: PaletteContext = { hasFocusedTerminal: false, focusedAgentType: null };
 
   constructor() {
     this.loadRecent();
@@ -89,6 +98,18 @@ export class CommandPalette {
 
   register(command: Command): void {
     this.commands.push(command);
+  }
+
+  registerDynamic(prefix: string, commands: Command[]): void {
+    this.dynamicCommands.set(prefix, commands);
+  }
+
+  unregisterDynamic(prefix: string): void {
+    this.dynamicCommands.delete(prefix);
+  }
+
+  setContext(context: PaletteContext): void {
+    this.context = context;
   }
 
   toggle(): void {
@@ -191,7 +212,8 @@ export class CommandPalette {
       const categories: CommandCategory[] = ['Agent', 'Layout', 'File', 'Git', 'Voice', 'Theme', 'View', 'General'];
       const grouped = new Map<string, Command[]>();
 
-      for (const cmd of this.commands) {
+      const visibleCommands = this.getAllCommands().filter((cmd) => this.isContextVisible(cmd));
+      for (const cmd of visibleCommands) {
         // Skip commands already shown in recent
         if (recentCommands.some((r) => r.id === cmd.id)) continue;
         const cat = cmd.category ?? 'General';
@@ -298,9 +320,24 @@ export class CommandPalette {
     });
   }
 
+  private getAllCommands(): readonly Command[] {
+    const dynamic = Array.from(this.dynamicCommands.values()).flat();
+    return [...this.commands, ...dynamic];
+  }
+
+  private isContextVisible(command: Command): boolean {
+    const ctx = command.context ?? 'any';
+    if (ctx === 'any') return true;
+    if (ctx === 'terminal') return this.context.hasFocusedTerminal;
+    if (ctx === 'agent') return !!this.context.focusedAgentType && this.context.focusedAgentType !== 'shell';
+    return true;
+  }
+
   private getFilteredCommands(): ScoredCommand[] {
+    const all = this.getAllCommands().filter((cmd) => this.isContextVisible(cmd));
+
     if (!this.filterText) {
-      return this.commands.map((command) => ({
+      return all.map((command) => ({
         command,
         score: 0,
         matchIndices: [],
@@ -308,8 +345,7 @@ export class CommandPalette {
     }
 
     const scored: ScoredCommand[] = [];
-    for (const command of this.commands) {
-      // Search in both label and category
+    for (const command of all) {
       const labelMatch = fuzzyMatch(command.label, this.filterText);
       const categoryMatch = command.category ? fuzzyMatch(command.category, this.filterText) : null;
       const bestScore = Math.max(labelMatch?.score ?? 0, categoryMatch?.score ?? 0);

@@ -571,13 +571,29 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
+function darken(hex: string, amount: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const r = Math.max(0, Math.min(255, rgb.r - amount));
+  const g = Math.max(0, Math.min(255, rgb.g - amount));
+  const b = Math.max(0, Math.min(255, rgb.b - amount));
+  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+}
+
+function isLightTheme(chrome: Readonly<Record<string, string>>): boolean {
+  const bg = hexToRgb(chrome['--bg'] ?? '#1a1b26');
+  if (!bg) return false;
+  return (bg.r + bg.g + bg.b) / 3 > 128;
+}
+
 function enrichChrome(chrome: Readonly<Record<string, string>>): Readonly<Record<string, string>> {
+  const light = isLightTheme(chrome);
+  const adjust = light ? darken : lighten;
   return {
     ...chrome,
-    '--fg-dim': chrome['--fg-dim'] ? lighten(chrome['--fg-dim'], 20) : chrome['--fg-dim'],
-    '--surface-raised': chrome['--surface-raised'] ?? lighten(chrome['--bg'] ?? '#1a1b26', 6),
+    '--surface-raised': chrome['--surface-raised'] ?? adjust(chrome['--bg'] ?? '#1a1b26', 6),
     '--accent-dim': chrome['--accent-dim'] ?? withAlpha(chrome['--accent'] ?? '#7aa2f7', 0.15),
-    '--accent-hover': chrome['--accent-hover'] ?? lighten(chrome['--accent'] ?? '#7aa2f7', 15),
+    '--accent-hover': chrome['--accent-hover'] ?? adjust(chrome['--accent'] ?? '#7aa2f7', 15),
     '--border-subtle': chrome['--border-subtle'] ?? withAlpha(chrome['--border'] ?? '#2a2b3d', 0.5),
   };
 }

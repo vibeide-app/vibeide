@@ -6,6 +6,7 @@ import { PtyManager } from '../pty/pty-manager';
 import { getDefaultAgentConfig } from './agent-config';
 import { AgentRecorder } from './agent-recorder';
 import { OutputBuffer, detectNeedsInput } from './input-detector';
+import { detectVersion, startPeriodicCheck } from './agent-version-detector';
 
 const INPUT_CHECK_INTERVAL_MS = 500;
 
@@ -16,6 +17,7 @@ export class AgentManager {
   private readonly ptyManager: PtyManager;
   private readonly sendToRenderer: (channel: string, ...args: unknown[]) => void;
   private readonly recorder: AgentRecorder;
+  private stopAvailabilityCheck: (() => void) | null = null;
 
   constructor(
     ptyManager: PtyManager,
@@ -24,6 +26,10 @@ export class AgentManager {
     this.ptyManager = ptyManager;
     this.sendToRenderer = sendToRenderer;
     this.recorder = new AgentRecorder();
+
+    this.stopAvailabilityCheck = startPeriodicCheck((availability) => {
+      this.sendToRenderer(IPC_CHANNELS.AGENT_AVAILABILITY_CHANGED, availability);
+    });
   }
 
   spawnAgent(request: AgentSpawnRequest): AgentInfo {
@@ -115,6 +121,18 @@ export class AgentManager {
       status: 'running' as AgentStatus,
     });
 
+    // Detect version asynchronously (non-blocking)
+    detectVersion(request.type).then((version) => {
+      if (version) {
+        const current = this.agents.get(agentId);
+        if (current) {
+          const updated: AgentInfo = { ...current, version };
+          this.agents.set(agentId, updated);
+          this.sendToRenderer(IPC_CHANNELS.AGENT_VERSION, { agentId, version });
+        }
+      }
+    }).catch(() => { /* version detection is best-effort */ });
+
     return agentInfo;
   }
 
@@ -159,6 +177,10 @@ export class AgentManager {
   }
 
   disposeAll(): void {
+    if (this.stopAvailabilityCheck) {
+      this.stopAvailabilityCheck();
+      this.stopAvailabilityCheck = null;
+    }
     for (const agentId of this.inputCheckTimers.keys()) {
       this.clearInputCheck(agentId);
     }

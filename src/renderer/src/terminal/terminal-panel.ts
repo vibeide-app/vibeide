@@ -3,6 +3,7 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
+import { SerializeAddon } from '@xterm/addon-serialize';
 import { DEFAULT_SCROLLBACK } from '../../../shared/constants';
 import { getTheme, loadSavedTheme } from './terminal-theme';
 import { TerminalSearch } from './terminal-search';
@@ -20,6 +21,7 @@ export class TerminalPanel {
   private readonly fitAddon: FitAddon;
   private readonly searchAddon: SearchAddon;
   private webglAddon: WebglAddon | null = null;
+  private serializeAddon: SerializeAddon | null = null;
   private readonly _sessionId: string;
   private container: HTMLElement | null = null;
   private unsubscribeData: (() => void) | null = null;
@@ -62,6 +64,8 @@ export class TerminalPanel {
     this.terminal.loadAddon(this.fitAddon);
     this.terminal.loadAddon(this.searchAddon);
     this.terminal.loadAddon(new WebLinksAddon());
+    this.serializeAddon = new SerializeAddon();
+    this.terminal.loadAddon(this.serializeAddon);
 
     try {
       this.webglAddon = new WebglAddon();
@@ -184,6 +188,20 @@ export class TerminalPanel {
     return this.terminal.options.fontSize ?? 14;
   }
 
+  getScrollback(): string {
+    try {
+      return this.serializeAddon?.serialize() ?? '';
+    } catch {
+      return '';
+    }
+  }
+
+  loadScrollback(data: string): void {
+    if (data) {
+      this.terminal.write(data);
+    }
+  }
+
   getContainer(): HTMLElement | null {
     return this.container;
   }
@@ -201,6 +219,7 @@ export class TerminalPanel {
     this.terminalSearch?.dispose();
     this.terminalSearch = null;
     this.webglAddon?.dispose();
+    this.serializeAddon?.dispose();
     this.fitAddon.dispose();
     this.searchAddon.dispose();
     this.terminal.dispose();

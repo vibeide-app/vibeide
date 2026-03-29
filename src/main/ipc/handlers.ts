@@ -774,4 +774,24 @@ export function registerIpcHandlers(
     if (typeof raw !== 'boolean') return;
     notificationManager.setEnabled(raw);
   });
+
+  // Scrollback persistence
+  const { saveScrollback, loadScrollback, deleteScrollback } = require('../scrollback-store');
+
+  ipcMain.handle(IPC_CHANNELS.SCROLLBACK_SAVE, async (_event, raw: unknown) => {
+    if (!raw || typeof raw !== 'object') return;
+    const { sessionId, data } = raw as { sessionId: string; data: string };
+    if (typeof sessionId !== 'string' || typeof data !== 'string') return;
+    await saveScrollback(sessionId, data);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SCROLLBACK_LOAD, async (_event, sessionId: unknown) => {
+    if (typeof sessionId !== 'string') return null;
+    return loadScrollback(sessionId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SCROLLBACK_DELETE, async (_event, sessionId: unknown) => {
+    if (typeof sessionId !== 'string') return;
+    await deleteScrollback(sessionId);
+  });
 }

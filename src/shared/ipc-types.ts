@@ -132,6 +132,8 @@ export interface VibeIDEApi {
     list(): Promise<AgentInfo[]>;
     onStatus(callback: (event: AgentStatusEvent) => void): () => void;
     onExit(callback: (event: AgentExitEvent) => void): () => void;
+    onVersion(callback: (event: { agentId: string; version: string }) => void): () => void;
+    onAvailabilityChanged(callback: (availability: { claude: boolean; gemini: boolean; codex: boolean }) => void): () => void;
   };
   project: {
     list(): Promise<ProjectInfo[]>;
@@ -195,5 +197,10 @@ export interface VibeIDEApi {
   state: {
     load(): Promise<AppState | null>;
     save(state: AppState): Promise<void>;
+  };
+  scrollback: {
+    save(sessionId: string, data: string): Promise<void>;
+    load(sessionId: string): Promise<string | null>;
+    delete(sessionId: string): Promise<void>;
   };
 }

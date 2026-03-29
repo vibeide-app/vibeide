@@ -20,4 +20,11 @@ export interface AgentInfo {
   readonly sessionId: string;
   readonly startedAt: number;
   readonly pid?: number;
+  readonly version?: string;
+}
+
+export interface AgentAvailability {
+  readonly claude: boolean;
+  readonly gemini: boolean;
+  readonly codex: boolean;
 }

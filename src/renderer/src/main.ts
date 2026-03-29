@@ -739,7 +739,7 @@ function main(): void {
 
   // Keybinding action map — maps definition IDs to actions
   const keybindingActions: Record<string, { action: () => void; holdUp?: () => void }> = {
-    'command-palette': { action: () => commandPalette.toggle() },
+    'command-palette': { action: () => { updatePaletteContext(); commandPalette.toggle(); } },
     'toggle-sidebar': { action: () => projectSidebar.toggleCollapse() },
     'git-changes': {
       action: () => {
@@ -863,6 +863,79 @@ function main(): void {
       }
     }
   }
+
+  function updatePaletteContext(): void {
+    const ws = workspaceSwitcher.getActiveWorkspace();
+    if (!ws) {
+      commandPalette.setContext({ hasFocusedTerminal: false, focusedAgentType: null });
+      return;
+    }
+    const leafId = ws.layoutManager.getFocusedLeafId();
+    const hasFocused = !!leafId;
+    let agentType: string | null = null;
+    if (leafId) {
+      const leafEl = document.querySelector(`[data-leaf-id="${leafId}"]`) as HTMLElement | null;
+      const sessionId = leafEl?.dataset.sessionId ?? null;
+      if (sessionId) {
+        for (const tracked of ws.getTrackedAgents().values()) {
+          if (tracked.info.sessionId === sessionId) {
+            agentType = tracked.info.config.type;
+            break;
+          }
+        }
+      }
+    }
+    commandPalette.setContext({ hasFocusedTerminal: hasFocused, focusedAgentType: agentType });
+  }
+
+  function sendToFocusedTerminal(data: string): void {
+    const ws = workspaceSwitcher.getActiveWorkspace();
+    if (!ws) return;
+    const leafId = ws.layoutManager.getFocusedLeafId();
+    if (!leafId) return;
+    const leafEl = document.querySelector(`[data-leaf-id="${leafId}"]`) as HTMLElement | null;
+    const sessionId = leafEl?.dataset.sessionId ?? null;
+    if (sessionId) {
+      window.api.pty.write({ sessionId, data });
+    }
+  }
+
+  // Register agent-specific commands (context-aware)
+  commandPalette.registerDynamic('claude', [
+    { id: 'claude-accept', label: 'Claude: Accept Changes', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'claude-reject', label: 'Claude: Reject Changes', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+    { id: 'claude-plan', label: 'Claude: Show Plan', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('/plan\n') },
+    { id: 'claude-compact', label: 'Claude: Compact Context', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('/compact\n') },
+  ]);
+  commandPalette.registerDynamic('gemini', [
+    { id: 'gemini-accept', label: 'Gemini: Accept', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'gemini-reject', label: 'Gemini: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+  commandPalette.registerDynamic('codex', [
+    { id: 'codex-approve', label: 'Codex: Approve', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('y\n') },
+    { id: 'codex-reject', label: 'Codex: Reject', category: 'Agent', context: 'agent', action: () => sendToFocusedTerminal('n\n') },
+  ]);
+
+  // Tag terminal-specific commands with context
+  commandPalette.register({
+    id: 'search-terminal',
+    label: 'Search in Terminal',
+    shortcut: 'Ctrl+Shift+F',
+    category: 'View',
+    context: 'terminal',
+    action: () => toggleSearchOnFocused(),
+  });
+
+  // Listen for agent version updates
+  window.api.agent.onVersion((event) => {
+    for (const ws of getAllWorkspaces()) {
+      const tracked = ws.getTrackedAgents().get(event.agentId);
+      if (tracked) {
+        (tracked as any).statusBar?.updateVersion?.(event.version);
+        break;
+      }
+    }
+  });
 
   async function applyPresetToActive(presetId: string): Promise<void> {
     const workspace = workspaceSwitcher.getActiveWorkspace();

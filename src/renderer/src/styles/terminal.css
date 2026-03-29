@@ -329,7 +329,7 @@
 }
 
 .agent-status-bar.needs-input {
-  background: rgba(224, 175, 104, 0.15);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
   border-bottom-color: var(--warning);
 }
 
@@ -339,7 +339,7 @@
 }
 
 .agent-status-bar.status-bar-error {
-  background: rgba(247, 118, 142, 0.1);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
   border-bottom-color: var(--error);
 }
 
@@ -349,7 +349,7 @@
 }
 
 .agent-status-bar.status-bar-complete {
-  background: rgba(122, 162, 247, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-bottom-color: var(--accent);
 }
 
@@ -361,6 +361,12 @@
 .status-bar-type {
   font-weight: 500;
   color: var(--accent);
+}
+
+.status-bar-version {
+  color: var(--fg-faint);
+  font-size: var(--font-xs);
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .status-bar-status {
@@ -600,7 +606,7 @@
 }
 
 .project-entry.active {
-  background: rgba(122, 162, 247, 0.2);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   border-left-color: var(--accent);
 }
 
@@ -645,7 +651,7 @@
   font-size: var(--font-xs);
   padding: 1px 5px;
   border-radius: 8px;
-  background: rgba(224, 175, 104, 0.2);
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
   color: var(--warning);
   min-width: 16px;
   text-align: center;
@@ -662,7 +668,7 @@
 }
 
 .git-change-badge:hover {
-  background: rgba(224, 175, 104, 0.35);
+  background: color-mix(in srgb, var(--warning) 35%, transparent);
 }
 
 .git-change-badge:empty { display: none; }
@@ -1141,15 +1147,15 @@
 }
 
 .file-editor-container .cm-merge-a .cm-changedLine {
-  background: rgba(247, 118, 142, 0.1);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
 .file-editor-container .cm-merge-b .cm-changedLine {
-  background: rgba(158, 206, 106, 0.1);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
 }
 
 .file-editor-container .cm-deletedChunk {
-  background: rgba(247, 118, 142, 0.08);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
 }
 
 /* Diff action bar */
