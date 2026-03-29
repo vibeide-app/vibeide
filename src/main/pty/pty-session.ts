@@ -4,7 +4,9 @@ import { FRAME_COALESCE_MS } from '../../shared/constants';
 const SAFE_ENV_KEYS = new Set([
   'PATH', 'HOME', 'USER', 'SHELL', 'TERM', 'LANG', 'LC_ALL',
   'LC_CTYPE', 'COLORTERM', 'TERM_PROGRAM', 'XDG_RUNTIME_DIR',
-  'DISPLAY', 'WAYLAND_DISPLAY',
+  'DISPLAY', 'WAYLAND_DISPLAY', 'DBUS_SESSION_BUS_ADDRESS',
+  'NVM_DIR', 'NVM_BIN', 'NVM_INC', 'NODE_PATH',
+  'CLAUDE_PLUGIN_ROOT',
 ]);
 
 function buildSafeEnv(
@@ -29,6 +31,25 @@ function buildSafeEnv(
   }
   if (agentType === 'codex' && process.env.OPENAI_API_KEY) {
     env.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  }
+
+  // Ensure NVM node is in PATH (Electron doesn't source .bashrc)
+  const nvmDir = process.env.NVM_DIR || `${process.env.HOME}/.nvm`;
+  try {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const versionsDir = path.join(nvmDir, 'versions', 'node');
+    if (fs.existsSync(versionsDir)) {
+      const versions = fs.readdirSync(versionsDir).sort().reverse();
+      if (versions.length > 0) {
+        const nvmBin = path.join(versionsDir, versions[0], 'bin');
+        if (env.PATH && !env.PATH.includes(nvmBin)) {
+          env.PATH = `${nvmBin}:${env.PATH}`;
+        }
+      }
+    }
+  } catch {
+    // NVM not installed — skip
   }
 
   if (overrides) {
