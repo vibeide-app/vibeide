@@ -324,16 +324,32 @@ export class LayoutManager {
   equalizeAll(): void {
     if (!this.layout) return;
     this.layout = this.resetRatios(this.layout);
-    this.render();
+    // Force render even if element was previously skipped
+    this.rootElement.replaceChildren();
+    const dom = this.renderNode(this.layout);
+    this.rootElement.appendChild(dom);
+    this.setupDividerDrag();
+    requestAnimationFrame(() => this.onFitAll());
   }
 
   private resetRatios(node: LayoutNode): LayoutNode {
     if (node.type === 'leaf') return node;
+
+    const leftCount = this.countLeaves(node.children[0]);
+    const rightCount = this.countLeaves(node.children[1]);
+    const total = leftCount + rightCount;
+    const ratio = total > 0 ? leftCount / total : 0.5;
+
     return {
       ...node,
-      ratio: 0.5,
+      ratio,
       children: [this.resetRatios(node.children[0]), this.resetRatios(node.children[1])],
     };
+  }
+
+  private countLeaves(node: LayoutNode): number {
+    if (node.type === 'leaf') return 1;
+    return this.countLeaves(node.children[0]) + this.countLeaves(node.children[1]);
   }
 
   private updateRatio(node: LayoutNode, splitId: string, ratio: number): LayoutNode {
