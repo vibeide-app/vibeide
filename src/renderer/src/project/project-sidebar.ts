@@ -445,10 +445,6 @@ export class ProjectSidebar {
       agentLabel.className = 'agent-label';
       agentLabel.textContent = agent.config.label || agent.config.type;
 
-      const agentBadge = document.createElement('span');
-      agentBadge.className = 'agent-type-badge';
-      agentBadge.textContent = agent.config.type;
-
       const killBtn = document.createElement('button');
       killBtn.className = 'agent-entry-kill';
       killBtn.textContent = '\u00d7';
@@ -462,7 +458,6 @@ export class ProjectSidebar {
       agentEl.appendChild(agentDot);
       agentEl.appendChild(agentIcon);
       agentEl.appendChild(agentLabel);
-      agentEl.appendChild(agentBadge);
       agentEl.appendChild(killBtn);
       agentList.appendChild(agentEl);
     }
