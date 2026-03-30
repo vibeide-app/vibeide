@@ -1,6 +1,7 @@
 // Onboarding wizard — 5-step first-run experience
 // Welcome → Agents → AI Skills → Project → Ready
 
+import type { AgentType } from '../../../shared/agent-types';
 import { WelcomeStep } from './onboarding-welcome';
 import { AgentsStep } from './onboarding-agents';
 import { SkillsStep } from './onboarding-skills';
@@ -230,5 +231,3 @@ export class OnboardingWizard {
     } catch { /* best-effort */ }
   }
 }
-
-type AgentType = import('../../../shared/agent-types').AgentType;

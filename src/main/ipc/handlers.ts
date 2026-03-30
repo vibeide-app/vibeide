@@ -417,8 +417,12 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC_CHANNELS.FILE_LIST_DIR, async (_event, raw: unknown) => {
     try {
       if (typeof raw !== 'string') return { error: 'invalid_path' };
+      const resolved = path.resolve(raw);
+      if (!resolved.startsWith(os.homedir() + path.sep)) {
+        return { error: 'path_outside_home' };
+      }
       const fsp = await import('node:fs/promises');
-      const entries = await fsp.readdir(raw, { withFileTypes: true });
+      const entries = await fsp.readdir(resolved, { withFileTypes: true });
       const result = entries
         .filter((e) => !e.name.startsWith('.'))
         .sort((a, b) => {
@@ -429,7 +433,7 @@ export function registerIpcHandlers(
         .slice(0, 500)
         .map((e) => ({
           name: e.name,
-          path: path.join(raw as string, e.name),
+          path: path.join(resolved, e.name),
           isDirectory: e.isDirectory(),
         }));
       return result;
@@ -605,7 +609,6 @@ export function registerIpcHandlers(
 
       const maxResults = typeof req.maxResults === 'number' ? req.maxResults : 100;
       const { execFile } = await import('node:child_process');
-      console.log(`[IPC][file:search] query="${req.query}" projectPath="${req.projectPath}"`);
 
       // Try ripgrep first, fall back to grep
       return new Promise<unknown[]>((resolve) => {
@@ -616,12 +619,9 @@ export function registerIpcHandlers(
           '--', req.query as string, req.projectPath as string,
         ];
 
-        execFile('rg', rgArgs, { timeout: 10000, maxBuffer: 2 * 1024 * 1024 }, (rgErr, rgOut) => {
-          console.log(`[IPC][file:search] rg: err=${rgErr ? 'yes' : 'no'} outLen=${rgOut?.length ?? 0}`);
+        execFile('rg', rgArgs, { timeout: 10000, maxBuffer: 2 * 1024 * 1024 }, (_rgErr, rgOut) => {
           if (rgOut && rgOut.trim()) {
-            const results = parseSearchResults(rgOut, req.projectPath as string, true);
-            console.log(`[IPC][file:search] rg parsed ${results.length} results`);
-            resolve(results);
+            resolve(parseSearchResults(rgOut, req.projectPath as string, true));
             return;
           }
 
@@ -634,13 +634,9 @@ export function registerIpcHandlers(
             req.query as string, req.projectPath as string,
           ];
 
-          console.log(`[IPC][file:search] trying grep with args:`, grepArgs.join(' '));
-          execFile('grep', grepArgs, { timeout: 10000, maxBuffer: 2 * 1024 * 1024 }, (_grepErr, grepOut, grepStderr) => {
-            console.log(`[IPC][file:search] grep: outLen=${grepOut?.length ?? 0} stderr=${grepStderr?.slice(0, 200) ?? ''}`);
+          execFile('grep', grepArgs, { timeout: 10000, maxBuffer: 2 * 1024 * 1024 }, (_grepErr, grepOut) => {
             if (grepOut && grepOut.trim()) {
-              const results = parseSearchResults(grepOut, req.projectPath as string, false);
-              console.log(`[IPC][file:search] grep parsed ${results.length} results`);
-              resolve(results);
+              resolve(parseSearchResults(grepOut, req.projectPath as string, false));
             } else {
               resolve([]);
             }
@@ -654,9 +650,16 @@ export function registerIpcHandlers(
   });
 
   // Agent install detection
+  const ALLOWED_COMMANDS = new Set(['claude', 'gemini', 'codex', 'aider', 'opencode',
+    'cline', 'copilot', 'amp', 'cn', 'cursor-agent', 'crush', 'qwen']);
+
   ipcMain.handle(IPC_CHANNELS.AGENT_CHECK_INSTALLED, async (_event, raw: unknown) => {
     try {
       if (typeof raw !== 'string') return { installed: false };
+      // Whitelist: reject any command not in the allowed set, or containing path separators
+      if (!ALLOWED_COMMANDS.has(raw) || raw.includes('/') || raw.includes('..')) {
+        return { installed: false };
+      }
       const { execFile } = await import('node:child_process');
       const nodePath = await import('node:path');
       const nodeFs = await import('node:fs');
@@ -762,17 +765,21 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC_CHANNELS.FILE_READ, async (_event, raw: unknown) => {
     try {
       if (typeof raw !== 'string') return { error: 'invalid_path' };
+      const resolvedRead = path.resolve(raw);
+      if (!resolvedRead.startsWith(os.homedir() + path.sep)) {
+        return { error: 'path_outside_home' };
+      }
       const fsp = await import('node:fs/promises');
       const MAX_FILE_SIZE = 512 * 1024; // 512 KB
-      const stat = await fsp.stat(raw);
+      const stat = await fsp.stat(resolvedRead);
       if (!stat.isFile()) return { error: 'not_a_file' };
       const truncated = stat.size > MAX_FILE_SIZE;
-      const handle = await fsp.open(raw, 'r');
+      const handle = await fsp.open(resolvedRead, 'r');
       const buffer = Buffer.alloc(Math.min(stat.size, MAX_FILE_SIZE));
       await handle.read(buffer, 0, buffer.length, 0);
       await handle.close();
       return {
-        path: raw,
+        path: resolvedRead,
         content: buffer.toString('utf-8'),
         truncated,
       };
@@ -810,13 +817,20 @@ export function registerIpcHandlers(
     return getSkillsManifest();
   });
 
+  const VALID_SKILL_ID = /^[a-z0-9-]+$/;
+  const KNOWN_AGENTS = new Set<string>(['claude', 'gemini', 'codex', 'aider', 'opencode',
+    'cline', 'copilot', 'amp', 'continue', 'cursor', 'crush', 'qwen']);
+
   ipcMain.handle(IPC_CHANNELS.SKILLS_INSTALL, async (_event, raw: unknown) => {
     if (!raw || typeof raw !== 'object') return { results: [], summary: { installed: 0, failed: 0, skipped: 0 } };
     const req = raw as { skillIds: string[]; targetAgents: string[] };
     if (!Array.isArray(req.skillIds) || !Array.isArray(req.targetAgents)) {
       return { results: [], summary: { installed: 0, failed: 0, skipped: 0 } };
     }
-    return installSkills({ skillIds: req.skillIds, targetAgents: req.targetAgents as any });
+    // Validate each element: skillIds must match safe identifier pattern, targetAgents must be known
+    const safeSkillIds = req.skillIds.filter((id): id is string => typeof id === 'string' && VALID_SKILL_ID.test(id));
+    const safeTargetAgents = req.targetAgents.filter((a): a is string => typeof a === 'string' && KNOWN_AGENTS.has(a));
+    return installSkills({ skillIds: safeSkillIds, targetAgents: safeTargetAgents as any });
   });
 
   ipcMain.handle(IPC_CHANNELS.SKILLS_INSTALLED, async () => {

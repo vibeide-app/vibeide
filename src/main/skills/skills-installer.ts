@@ -33,12 +33,29 @@ async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }
 
+const ALLOWED_REDIRECT_HOSTS = new Set(['raw.githubusercontent.com', 'api.github.com']);
+
+function isAllowedRedirect(location: string | undefined): location is string {
+  if (!location) return false;
+  try {
+    const parsed = new URL(location);
+    return parsed.protocol === 'https:' && ALLOWED_REDIRECT_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function fetchRaw(filePath: string): Promise<string> {
   const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${filePath}`;
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
-        https.get(res.headers.location!, (redirectRes) => {
+        const location = res.headers.location;
+        if (!isAllowedRedirect(location)) {
+          reject(new Error(`Redirect to disallowed host rejected for ${filePath}`));
+          return;
+        }
+        https.get(location, (redirectRes) => {
           let data = '';
           redirectRes.on('data', (chunk) => { data += chunk; });
           redirectRes.on('end', () => resolve(data));
@@ -85,12 +102,14 @@ async function installSkillFiles(archivePath: string, targetDir: string): Promis
   const items = await fetchDirectory(archivePath);
 
   for (const item of items) {
+    const safeName = path.basename(item.name);
+    if (!safeName || safeName.startsWith('.')) continue;
     if (item.type === 'file') {
       const content = await fetchRaw(item.path);
-      const destPath = path.join(targetDir, item.name);
+      const destPath = path.join(targetDir, safeName);
       await fs.writeFile(destPath, content, 'utf-8');
     } else if (item.type === 'dir') {
-      const subDir = path.join(targetDir, item.name);
+      const subDir = path.join(targetDir, safeName);
       await ensureDir(subDir);
       await installSkillFiles(item.path, subDir);
     }
