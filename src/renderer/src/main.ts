@@ -653,6 +653,18 @@ function main(): void {
       }
     },
   });
+  commandPalette.register({
+    id: 'file-viewer-popout',
+    label: 'Open File Viewer in New Window',
+    shortcut: 'Ctrl+Shift+F2',
+    category: 'File',
+    action: () => {
+      const workspace = workspaceSwitcher.getActiveWorkspace();
+      if (workspace) {
+        window.api.window.popoutFile(workspace.projectPath);
+      }
+    },
+  });
 
   // Voice input
   // Voice command router — detects "vibeide <command>" vs terminal text
@@ -692,6 +704,7 @@ function main(): void {
   voiceRouter.registerCommand({ id: 'file-finder', aliases: ['open file', 'quick open', 'find file', 'go to file'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) fileFinder.toggle(ws.projectPath); } });
   voiceRouter.registerCommand({ id: 'git-changes', aliases: ['show changes', 'git status', 'git diff', 'show diff', 'view changes'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) fileViewer.showChanges(ws.projectPath); } });
   voiceRouter.registerCommand({ id: 'file-viewer', aliases: ['open files', 'file viewer', 'show files', 'browse files', 'file browser'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) fileViewer.toggle(ws.projectPath); } });
+  voiceRouter.registerCommand({ id: 'file-viewer-popout', aliases: ['pop out files', 'pop out file viewer', 'file viewer new window', 'open files new window'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) window.api.window.popoutFile(ws.projectPath); } });
   voiceRouter.registerCommand({ id: 'search', aliases: ['search', 'find', 'search terminal', 'find in terminal'], action: () => toggleSearchOnFocused() });
   voiceRouter.registerCommand({ id: 'zoom-in', aliases: ['zoom in', 'make bigger', 'increase size'], action: () => window.api.window.zoomIn() });
   voiceRouter.registerCommand({ id: 'zoom-out', aliases: ['zoom out', 'make smaller', 'decrease size'], action: () => window.api.window.zoomOut() });
@@ -913,6 +926,12 @@ function main(): void {
       action: () => {
         const ws = workspaceSwitcher.getActiveWorkspace();
         if (ws) fileViewer.toggle(ws.projectPath);
+      },
+    },
+    'file-viewer-popout': {
+      action: () => {
+        const ws = workspaceSwitcher.getActiveWorkspace();
+        if (ws) window.api.window.popoutFile(ws.projectPath);
       },
     },
     'add-project': { action: () => projectSidebar['callbacks'].onProjectAdd() },

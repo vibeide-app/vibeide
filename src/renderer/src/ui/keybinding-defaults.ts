@@ -12,6 +12,7 @@ export const KEYBINDING_DEFAULTS: readonly KeybindingDefinition[] = [
   { id: 'file-search', label: 'Search Across Files', defaultKey: 'ctrl+shift+h' },
   { id: 'git-changes', label: 'Git: Show Changes', defaultKey: 'ctrl+shift+g' },
   { id: 'file-viewer', label: 'Open File Viewer', defaultKey: 'ctrl+shift+e' },
+  { id: 'file-viewer-popout', label: 'File Viewer in New Window', defaultKey: 'ctrl+shift+f2' },
   { id: 'add-project', label: 'Add Project', defaultKey: 'ctrl+shift+o' },
   { id: 'new-shell', label: 'New Shell', defaultKey: 'ctrl+shift+n' },
   { id: 'split-vertical', label: 'Split Vertical', defaultKey: 'ctrl+shift+d' },
