@@ -3,11 +3,22 @@ import { createAgentIcon } from './agent-icons';
 import type { AgentType } from '../../../shared/agent-types';
 
 export type InstallCallback = (installCommand: string) => void;
+export type DialogCloseCallback = () => void;
 
 let _onInstall: InstallCallback | null = null;
+let _onDialogClose: DialogCloseCallback | null = null;
 
 export function setInstallCallback(cb: InstallCallback): void {
   _onInstall = cb;
+}
+
+export function setDialogCloseCallback(cb: DialogCloseCallback): void {
+  _onDialogClose = cb;
+}
+
+function removeDialog(overlay: HTMLElement): void {
+  overlay.remove();
+  if (_onDialogClose) _onDialogClose();
 }
 
 export function showAgentInstallDialog(
@@ -71,14 +82,14 @@ export function showAgentInstallDialog(
   closeBtn.className = 'agent-install-close-btn btn-secondary';
   closeBtn.textContent = 'Close';
   closeBtn.setAttribute('aria-label', 'Close install dialog');
-  closeBtn.addEventListener('click', () => overlay.remove());
+  closeBtn.addEventListener('click', () => removeDialog(overlay));
 
   const installBtn = document.createElement('button');
   installBtn.className = 'agent-install-run-btn btn-primary';
   installBtn.textContent = 'Install';
   installBtn.setAttribute('aria-label', 'Install agent');
   installBtn.addEventListener('click', () => {
-    overlay.remove();
+    removeDialog(overlay);
     if (_onInstall) {
       _onInstall(info.installCommand);
     }
@@ -96,7 +107,7 @@ export function showAgentInstallDialog(
   overlay.appendChild(card);
 
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.remove();
+    if (e.target === overlay) removeDialog(overlay);
   });
 
   document.body.appendChild(overlay);

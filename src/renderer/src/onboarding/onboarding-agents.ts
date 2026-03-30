@@ -3,7 +3,7 @@
 import type { StepRenderer } from './onboarding-wizard';
 import { createAgentIcon } from '../ui/agent-icons';
 import { AGENT_INSTALL_INFO } from '../../../shared/agent-install-info';
-import { showAgentInstallDialog } from '../ui/agent-install-dialog';
+import { showAgentInstallDialog, setDialogCloseCallback } from '../ui/agent-install-dialog';
 import type { AgentType } from '../../../shared/agent-types';
 
 interface AgentRow {
@@ -28,6 +28,8 @@ const AGENT_ORDER: readonly AgentRow[] = [
 ];
 
 const VISIBLE_COUNT = 6;
+const RESCAN_DELAY_MS = 3000;
+const RESCAN_ATTEMPTS = 5;
 
 export class AgentsStep implements StepRenderer {
   private availability: Record<string, boolean> = {};
@@ -35,6 +37,7 @@ export class AgentsStep implements StepRenderer {
   private unsubAvailability: (() => void) | null = null;
   private installedCount = 0;
   private countEl: HTMLElement | null = null;
+  private pendingAgent: AgentRow | null = null;
 
   render(container: HTMLElement): void {
     const headline = document.createElement('h2');
@@ -95,6 +98,16 @@ export class AgentsStep implements StepRenderer {
       this.availability = avail;
       this.updateBadges();
     });
+
+    // Re-scan after install dialog closes
+    setDialogCloseCallback(() => {
+      if (this.pendingAgent) {
+        const agent = this.pendingAgent;
+        this.pendingAgent = null;
+        this.setBadgeLoading(agent.type);
+        this.rescanAgent(agent, RESCAN_ATTEMPTS);
+      }
+    });
   }
 
   getInstalledCount(): number {
@@ -106,6 +119,7 @@ export class AgentsStep implements StepRenderer {
       this.unsubAvailability();
       this.unsubAvailability = null;
     }
+    setDialogCloseCallback(() => {});
   }
 
   private async scanAgents(): Promise<void> {
@@ -120,6 +134,34 @@ export class AgentsStep implements StepRenderer {
     this.updateBadges();
   }
 
+  private async rescanAgent(agent: AgentRow, attemptsLeft: number): Promise<void> {
+    if (attemptsLeft <= 0) {
+      this.updateBadges(); // revert to current state
+      return;
+    }
+
+    await new Promise((r) => setTimeout(r, RESCAN_DELAY_MS));
+
+    try {
+      const result = await window.api.agent.checkInstalled(agent.command);
+      if (result.installed) {
+        this.availability[agent.type] = true;
+        this.updateBadges();
+        return;
+      }
+    } catch { /* continue retrying */ }
+
+    // Not found yet — retry (install may still be running)
+    this.rescanAgent(agent, attemptsLeft - 1);
+  }
+
+  private setBadgeLoading(agentType: string): void {
+    const badge = this.badgeEls.get(agentType);
+    if (!badge) return;
+    badge.className = 'onboarding-agent-checking';
+    badge.textContent = 'Checking...';
+  }
+
   private updateBadges(): void {
     this.installedCount = 0;
     for (const agent of AGENT_ORDER) {
@@ -130,10 +172,10 @@ export class AgentsStep implements StepRenderer {
       if (installed) {
         this.installedCount++;
         badge.className = 'onboarding-agent-installed';
-        badge.innerHTML = '\u2713 Installed';
+        badge.textContent = '\u2713 Installed';
       } else {
         badge.className = 'onboarding-agent-install-btn';
-        badge.innerHTML = 'Install';
+        badge.textContent = 'Install';
       }
     }
     if (this.countEl) {
@@ -155,8 +197,12 @@ export class AgentsStep implements StepRenderer {
     badge.className = 'onboarding-agent-install-btn';
     badge.textContent = 'Install';
     badge.addEventListener('click', () => {
+      if (this.availability[agent.type]) return; // already installed
       const info = AGENT_INSTALL_INFO[agent.type];
-      if (info) showAgentInstallDialog(agent.type, info);
+      if (info) {
+        this.pendingAgent = agent;
+        showAgentInstallDialog(agent.type, info);
+      }
     });
 
     this.badgeEls.set(agent.type, badge);

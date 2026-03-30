@@ -188,6 +188,21 @@
   color: var(--accent);
 }
 
+.onboarding-agent-checking {
+  color: var(--warning);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: default;
+  animation: onboarding-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes onboarding-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* ============================================
    AI Skills step
    ============================================ */
