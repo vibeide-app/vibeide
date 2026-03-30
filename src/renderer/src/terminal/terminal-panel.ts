@@ -5,6 +5,7 @@ import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SerializeAddon } from '@xterm/addon-serialize';
 import { DEFAULT_SCROLLBACK } from '../../../shared/constants';
+import { showTerminalContextMenu } from './terminal-context-menu';
 import { getTheme, loadSavedTheme } from './terminal-theme';
 import { TerminalSearch } from './terminal-search';
 
@@ -81,33 +82,48 @@ export class TerminalPanel {
 
     this.terminalSearch = new TerminalSearch(this);
 
-    // Clipboard: copy selection on Ctrl+Shift+C, paste on Ctrl+Shift+V
+    // Clipboard via IPC (reliable in Electron, unlike navigator.clipboard)
     this.terminal.attachCustomKeyEventHandler((e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'C' && e.type === 'keydown') {
-        const selection = this.terminal.getSelection();
-        if (selection) {
-          navigator.clipboard.writeText(selection);
-        }
-        return false; // prevent xterm from handling
-      }
-      if (e.ctrlKey && e.shiftKey && e.key === 'V' && e.type === 'keydown') {
-        navigator.clipboard.readText().then((text) => {
-          if (text) {
-            window.api.pty.write({ sessionId: this._sessionId, data: text });
-          }
-        });
+      if (e.type !== 'keydown') return true;
+
+      // Ctrl+Shift+C — always copy selected text
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        this.copySelection();
         return false;
       }
+
+      // Ctrl+Shift+V — always paste
+      if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+        this.pasteFromClipboard();
+        return false;
+      }
+
+      // Ctrl+C — smart: copy if text selected, else send SIGINT
+      if (e.ctrlKey && !e.shiftKey && e.key === 'c') {
+        if (this.terminal.hasSelection() && this.terminal.getSelection().length > 0) {
+          this.copySelection();
+          return false; // prevent SIGINT
+        }
+        return true; // let xterm send \x03 (SIGINT)
+      }
+
+      // Ctrl+V — paste
+      if (e.ctrlKey && !e.shiftKey && e.key === 'v') {
+        this.pasteFromClipboard();
+        return false;
+      }
+
       return true;
     });
 
-    // Right-click: paste from clipboard
+    // Right-click: show context menu with Copy/Paste
     element.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      navigator.clipboard.readText().then((text) => {
-        if (text) {
-          window.api.pty.write({ sessionId: this._sessionId, data: text });
-        }
+      const hasSelection = this.terminal.hasSelection() && this.terminal.getSelection().length > 0;
+      showTerminalContextMenu(e.clientX, e.clientY, {
+        hasSelection,
+        onCopy: () => this.copySelection(),
+        onPaste: () => this.pasteFromClipboard(),
       });
     });
 
@@ -186,6 +202,33 @@ export class TerminalPanel {
 
   getFontSize(): number {
     return this.terminal.options.fontSize ?? 14;
+  }
+
+  private copySelection(): void {
+    try {
+      const selection = this.terminal.getSelection();
+      if (selection && selection.length > 0) {
+        window.api.clipboard.write(selection);
+        this.terminal.clearSelection();
+      }
+    } catch { /* clipboard write failed */ }
+  }
+
+  private pasteFromClipboard(): void {
+    if (!this.connected) return;
+    window.api.clipboard.read().then((text) => {
+      if (text) {
+        window.api.pty.write({ sessionId: this._sessionId, data: text }).catch(() => {});
+      }
+    }).catch(() => { /* clipboard read failed */ });
+  }
+
+  hasTerminalSelection(): boolean {
+    return this.terminal.hasSelection() && this.terminal.getSelection().length > 0;
+  }
+
+  getTerminalSelection(): string {
+    return this.terminal.getSelection();
   }
 
   getScrollback(): string {

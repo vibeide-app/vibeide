@@ -109,6 +109,18 @@ earlyIpcMain.handle('window:zoom-reset', (event: { sender: unknown }) => {
   }
 });
 
+// Clipboard IPC — reliable clipboard access from renderer
+earlyIpcMain.handle('clipboard:read', () => {
+  const { clipboard } = require('electron');
+  return clipboard.readText();
+});
+
+earlyIpcMain.handle('clipboard:write', (_event: unknown, text: unknown) => {
+  if (typeof text !== 'string' || text.length > 10 * 1024 * 1024) return;
+  const { clipboard } = require('electron');
+  clipboard.writeText(text);
+});
+
 // Pop-out file viewer in a new window
 earlyIpcMain.handle('window:popout-file', async (_event: unknown, args: { projectPath: string; filePath?: string }) => {
   const { BrowserWindow: BW } = require('electron');

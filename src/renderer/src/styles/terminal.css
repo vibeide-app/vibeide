@@ -40,6 +40,45 @@
 .split-container.horizontal { flex-direction: row; }
 .split-container.vertical { flex-direction: column; }
 
+/* Terminal context menu (right-click) */
+.terminal-context-menu {
+  position: fixed;
+  z-index: 10000;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--space-1) 0;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.terminal-context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--font-sm);
+  color: var(--fg);
+  transition: background var(--transition-fast);
+}
+
+.terminal-context-menu-item:hover {
+  background: var(--surface-hover);
+}
+
+.terminal-context-menu-item.disabled {
+  color: var(--fg-faint);
+  cursor: default;
+  pointer-events: none;
+}
+
+.terminal-context-menu-shortcut {
+  font-size: var(--font-xs);
+  color: var(--fg-faint);
+  margin-left: var(--space-4);
+}
+
 .split-divider {
   flex-shrink: 0;
   background: var(--border);

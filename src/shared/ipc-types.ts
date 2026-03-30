@@ -205,6 +205,10 @@ export interface VibeIDEApi {
     load(sessionId: string): Promise<string | null>;
     delete(sessionId: string): Promise<void>;
   };
+  clipboard: {
+    read(): Promise<string>;
+    write(text: string): Promise<void>;
+  };
   onboarding: {
     detectProjects(): Promise<Array<{ name: string; path: string }>>;
   };

@@ -129,6 +129,10 @@ contextBridge.exposeInMainWorld('api', {
     load: () => ipcRenderer.invoke(IPC_CHANNELS.STATE_LOAD),
     save: (state: unknown) => ipcRenderer.invoke(IPC_CHANNELS.STATE_SAVE, state),
   },
+  clipboard: {
+    read: () => ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_READ),
+    write: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_WRITE, text),
+  },
   onboarding: {
     detectProjects: () => ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_DETECT_PROJECTS),
   },
