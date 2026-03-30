@@ -9,3 +9,4 @@ dist/
 .env.*
 .vibeide-worktrees/
 docs/
+todo.md
