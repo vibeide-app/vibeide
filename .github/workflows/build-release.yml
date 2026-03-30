@@ -81,6 +81,8 @@ jobs:
       - run: npx electron-builder --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_BUILDER_HTTP_TIMEOUT: 300000
+        timeout-minutes: 20
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
