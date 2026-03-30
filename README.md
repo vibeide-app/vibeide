@@ -7,6 +7,7 @@ Run Claude, Gemini, Aider, and 9 more AI agents side by side — in split panes,
 ## Features
 
 - **12 AI agents** — Claude Code, Gemini, Codex, Aider, OpenCode, Cline, Copilot, Amp, Continue, Cursor, Crush, Qwen
+- **AI Skills integration** — install pre-packaged coding standards, TDD workflows, security patterns, and agent definitions during onboarding
 - **Multi-project management** — sidebar with project groups, status badges, instant switching
 - **Git worktree isolation** — each agent works in its own branch, review and merge with one click
 - **Smart status detection** — knows when agents need input, complete, or errored
@@ -16,8 +17,23 @@ Run Claude, Gemini, Aider, and 9 more AI agents side by side — in split panes,
 - **Source control** — commit graph, changes list, stage/unstage/discard
 - **Command palette** — fuzzy search, context-aware filtering, agent-specific commands
 - **Launch Workspace** — guided setup: pick project, choose agents, select layout, launch
+- **Copy-paste** — smart Ctrl+C (copies if selected, SIGINT if not), right-click context menu
 - **12 themes** — 9 dark + 3 light (Tokyo Night, Dracula, Nord, Solarized, GitHub, Catppuccin, etc.)
 - **Session persistence** — layout, agents, and scrollback restored on relaunch
+- **First-run onboarding** — guided wizard: detect agents, install AI skills, select project
+
+## AI Skills
+
+VibeIDE bundles pre-packaged skills from the [AISkills](https://github.com/NandaDevaiah/AISkills) repository. During onboarding (or later from the command palette), you can install:
+
+- **Coding standards** — universal best practices, language-specific rules
+- **TDD workflow** — test-driven development with 80%+ coverage enforcement
+- **Security scanning** — AI regression testing, vulnerability detection
+- **API design** — REST patterns, status codes, pagination, error responses
+- **Agent definitions** — planner, code reviewer, security reviewer, architect, TDD guide
+- **Language rules** — TypeScript, Python, Go, Rust, Kotlin, Java, Swift, C++, PHP, Perl
+
+Skills are installed to each agent's config directory (`~/.claude/skills/`, `~/.gemini/rules/`, etc.) so your agents are effective out of the box.
 
 ## Install
 
@@ -53,9 +69,10 @@ Download the `.exe` installer from [Releases](https://github.com/nandadevaiah/vi
 ## Quick Start
 
 1. Open VibeIDE — the onboarding wizard detects installed agents
-2. Add a project directory
-3. Click **+** on a project to spawn an agent, or use **Launch Workspace** (sidebar play button) for multi-agent setup
-4. Agents run in isolated git worktrees — review and merge changes when done
+2. Install AI Skills (recommended preset or custom selection)
+3. Add a project directory
+4. Click **+** on a project to spawn an agent, or use **Launch Workspace** (sidebar play button) for multi-agent setup
+5. Agents run in isolated git worktrees — review and merge changes when done
 
 ## Keyboard Shortcuts
 
@@ -64,6 +81,10 @@ Download the `.exe` installer from [Releases](https://github.com/nandadevaiah/vi
 | `Ctrl+Shift+P` | Command palette |
 | `Ctrl+Shift+N` | New shell terminal |
 | `Ctrl+Shift+D` | Split pane vertically |
+| `Ctrl+C` | Copy selected text / SIGINT if no selection |
+| `Ctrl+V` | Paste from clipboard |
+| `Ctrl+Shift+C` | Always copy selected text |
+| `Ctrl+Shift+V` | Always paste |
 | `Ctrl+P` | Quick open file |
 | `Ctrl+Shift+E` | Open file viewer |
 | `Ctrl+Shift+F2` | File viewer in new window |
