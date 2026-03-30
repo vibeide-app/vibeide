@@ -42,6 +42,10 @@ mac:
   category: public.app-category.developer-tools
   icon: resources/icons/512x512.png
   artifactName: VibeIDE-${version}-${arch}.${ext}
+  hardenedRuntime: true
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+  notarize: true
 dmg:
   artifactName: VibeIDE-${version}-${arch}.dmg
 win:
@@ -55,7 +59,4 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   shortcutName: VibeIDE
-publish:
-  provider: github
-  owner: nandadevaiah
-  repo: vibeide
+publish: null

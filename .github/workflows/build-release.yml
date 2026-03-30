@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   test:
@@ -55,9 +56,26 @@ jobs:
       - run: python3 -m pip install setuptools --break-system-packages
       - run: npm ci
       - run: npx electron-vite build
-      - run: npx electron-builder --mac
+
+      # Code signing + notarization (only when secrets are configured)
+      - name: Build macOS (signed)
+        if: ${{ env.CSC_LINK != '' }}
+        run: npx electron-builder --mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build macOS (unsigned)
+        if: ${{ env.CSC_LINK == '' }}
+        run: npx electron-builder --mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
@@ -78,11 +96,26 @@ jobs:
       - run: python3 -m pip install setuptools
       - run: npm ci
       - run: npx electron-vite build
-      - run: npx electron-builder --win
+
+      # Azure Trusted Signing (only when secrets are configured)
+      - name: Setup Azure Trusted Signing
+        if: ${{ secrets.AZURE_TENANT_ID != '' }}
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE }}
+
+      - name: Build Windows
+        run: npx electron-builder --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_HTTP_TIMEOUT: 300000
         timeout-minutes: 20
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
