@@ -191,6 +191,9 @@ function main(): void {
   ariaLive.className = 'sr-only';
   document.body.appendChild(ariaLive);
 
+  let announceTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingAnnouncement = '';
+
   function announceStatus(agentName: string, status: string): void {
     const messages: Record<string, string> = {
       'needs-input': `${agentName} needs your input`,
@@ -200,7 +203,18 @@ function main(): void {
       'starting': `${agentName} is starting`,
     };
     const text = messages[status] ?? `${agentName} status: ${status}`;
-    ariaLive.textContent = text;
+    pendingAnnouncement = text;
+
+    // Throttle: max 1 announcement per 2 seconds
+    if (!announceTimer) {
+      ariaLive.textContent = text;
+      announceTimer = setTimeout(() => {
+        announceTimer = null;
+        if (pendingAnnouncement !== ariaLive.textContent) {
+          ariaLive.textContent = pendingAnnouncement;
+        }
+      }, 2000);
+    }
   }
 
   // Workspace switcher
@@ -288,14 +302,13 @@ function main(): void {
       }
     },
     onAgentSpawn: async (projectId: string, type: AgentType) => {
-      // Ensure we're on the right project
+      // Ensure we're on the right project and workspace exists
       const projects = await window.api.project.list();
       const project = projects.find((p: ProjectInfo) => p.id === projectId);
       if (!project) return;
 
-      if (workspaceSwitcher.getActiveProjectId() !== projectId) {
-        await workspaceSwitcher.switchTo(project);
-      }
+      // Always switchTo to ensure workspace is created (idempotent if already active)
+      await workspaceSwitcher.switchTo(project);
 
       const workspace = workspaceSwitcher.getWorkspace(projectId);
       if (workspace) {

@@ -59,6 +59,7 @@ export class ProjectSidebar {
   private activeProjectId: string | null = null;
   private agentDropdownProjectId: string | null = null;
   private collapsed = false;
+  private savedExpandedWidth = 0;
 
   constructor(container: HTMLElement, callbacks: ProjectSidebarCallbacks) {
     this.container = container;
@@ -71,29 +72,56 @@ export class ProjectSidebar {
   }
 
   toggleCollapse(): void {
+    if (!this.collapsed) {
+      // Save current width before collapsing
+      this.savedExpandedWidth = this.container.offsetWidth;
+    }
     this.collapsed = !this.collapsed;
     this.container.classList.toggle('collapsed', this.collapsed);
+    // Clear inline width so CSS class controls sizing
+    if (this.collapsed) {
+      this.container.style.width = '';
+    } else {
+      // Restore saved width when expanding
+      if (this.savedExpandedWidth > 0) {
+        this.container.style.width = `${this.savedExpandedWidth}px`;
+      }
+    }
     this.updateRailVisibility();
   }
 
   setCollapsed(collapsed: boolean): void {
+    if (!collapsed && this.collapsed && this.savedExpandedWidth === 0) {
+      this.savedExpandedWidth = 240;
+    }
+    if (!this.collapsed && collapsed) {
+      this.savedExpandedWidth = this.container.offsetWidth || 240;
+    }
     this.collapsed = collapsed;
     this.container.classList.toggle('collapsed', this.collapsed);
+    if (this.collapsed) {
+      this.container.style.width = '';
+    } else if (this.savedExpandedWidth > 0) {
+      this.container.style.width = `${this.savedExpandedWidth}px`;
+    }
     this.updateRailVisibility();
   }
 
   private updateRailVisibility(): void {
     const expandedContent = this.container.querySelector('.sidebar-expanded-content') as HTMLElement | null;
-    const railContent = this.container.querySelector('.sidebar-rail-content') as HTMLElement | null;
 
     if (expandedContent) {
       expandedContent.style.display = this.collapsed ? 'none' : '';
     }
-    if (railContent) {
-      railContent.style.display = this.collapsed ? '' : 'none';
-    }
+
     if (this.collapsed) {
+      // Render rail first (creates the element if needed), then show it
       this.renderRailContent();
+      const rail = this.container.querySelector('.sidebar-rail-content') as HTMLElement | null;
+      if (rail) rail.style.display = 'flex';
+    } else {
+      const rail = this.container.querySelector('.sidebar-rail-content') as HTMLElement | null;
+      if (rail) rail.style.display = 'none';
     }
   }
 
@@ -106,10 +134,10 @@ export class ProjectSidebar {
     }
     rail.replaceChildren();
 
-    // Dragonfly icon at top
+    // Dragonfly icon at top — same visual weight as project avatars
     const logoBtn = document.createElement('button');
     logoBtn.className = 'rail-logo-btn';
-    logoBtn.innerHTML = logoMonoSvg(24);
+    logoBtn.innerHTML = logoMonoSvg(28);
     logoBtn.title = 'Expand sidebar';
     logoBtn.setAttribute('aria-label', 'Expand sidebar');
     logoBtn.addEventListener('click', () => this.toggleCollapse());
@@ -124,19 +152,20 @@ export class ProjectSidebar {
     const MAX_AGENT_ICONS = 6;
 
     for (const entry of this.entries.values()) {
+      const project = entry.project;
       const projectBtn = document.createElement('button');
       projectBtn.className = 'rail-project-btn';
-      if (entry.project.id === this.activeProjectId) {
+      if (project.id === this.activeProjectId) {
         projectBtn.classList.add('active');
       }
-      projectBtn.title = entry.project.name;
-      projectBtn.setAttribute('aria-label', entry.project.name);
+      projectBtn.title = project.name;
+      projectBtn.setAttribute('aria-label', project.name);
 
       // Letter avatar
       const letter = document.createElement('span');
       letter.className = 'rail-avatar';
-      letter.textContent = (entry.project.name[0] ?? '?').toUpperCase();
-      letter.style.background = avatarColor(entry.project.name);
+      letter.textContent = (project.name[0] ?? '?').toUpperCase();
+      letter.style.background = avatarColor(project.name);
       projectBtn.appendChild(letter);
 
       // Notification dot
@@ -147,7 +176,11 @@ export class ProjectSidebar {
       }
 
       projectBtn.addEventListener('click', () => {
-        this.callbacks.onProjectSelect(entry.project);
+        this.callbacks.onProjectSelect(project);
+        // Expand sidebar when clicking a project in the rail
+        if (this.collapsed) {
+          this.toggleCollapse();
+        }
       });
 
       rail.appendChild(projectBtn);
@@ -172,6 +205,8 @@ export class ProjectSidebar {
         }
 
         agentBtn.addEventListener('click', () => {
+          // Switch to parent project first, then focus the agent's terminal
+          this.callbacks.onProjectSelect(project);
           this.callbacks.onAgentSelect(agent.id, agent.sessionId);
         });
 
@@ -244,6 +279,11 @@ export class ProjectSidebar {
       this.updateProjectRowActive(projectId);
       this.renderAgentList(projectId);
     }
+
+    // Re-render rail to update active indicator
+    if (this.collapsed) {
+      this.renderRailContent();
+    }
   }
 
   updateAgents(projectId: string, agents: AgentInfo[]): void {
@@ -256,6 +296,9 @@ export class ProjectSidebar {
     this.updateCountBadge(projectId);
     if (entry.expanded) {
       this.renderAgentList(projectId);
+    }
+    if (this.collapsed) {
+      this.renderRailContent();
     }
   }
 
@@ -285,6 +328,11 @@ export class ProjectSidebar {
         if (projectId !== this.activeProjectId &&
             (status === 'needs-input' || status === 'complete' || status === 'error')) {
           this.incrementNotification(projectId, agentId);
+        }
+
+        // Update icon rail if collapsed
+        if (this.collapsed) {
+          this.renderRailContent();
         }
         return;
       }
@@ -679,6 +727,10 @@ export class ProjectSidebar {
         launchHint.textContent = 'Launch Agent';
         launchHint.addEventListener('click', (e) => {
           e.stopPropagation();
+          // Expand sidebar first if collapsed so dropdown is visible
+          if (this.collapsed) {
+            this.toggleCollapse();
+          }
           const wrapper = refs.wrapper;
           this.toggleAgentDropdown(projectId, wrapper);
         });
@@ -706,7 +758,6 @@ export class ProjectSidebar {
         const icon = document.createElement('div');
         icon.className = 'project-empty-icon';
         icon.innerHTML = logoMonoSvg(48);
-        empty.appendChild(icon);
 
         const msg = document.createElement('p');
         msg.textContent = 'No projects yet';

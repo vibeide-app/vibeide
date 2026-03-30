@@ -176,12 +176,16 @@
   overflow-x: hidden;
 }
 
+.agent-sidebar.collapsed .sidebar-resize-handle {
+  display: none;
+}
+
 /* Expanded content wrapper */
 .sidebar-expanded-content {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-width: 240px;
+  overflow: hidden;
 }
 
 /* ============================================
@@ -197,8 +201,8 @@
 }
 
 .rail-logo-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;

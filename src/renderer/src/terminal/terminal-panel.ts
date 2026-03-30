@@ -64,12 +64,12 @@ export class TerminalPanel {
   }
 
   setLoadingInfo(agentName: string, agentType: string): void {
-    if (!this.container) return;
+    if (!this.container || this.loadingOverlay || this.receivedFirstOutput) return;
     this.showLoadingOverlay(agentName, agentType);
   }
 
   private showLoadingOverlay(agentName: string, _agentType: string): void {
-    if (!this.container || this.receivedFirstOutput) return;
+    if (!this.container || this.receivedFirstOutput || this.loadingOverlay) return;
 
     this.loadingOverlay = document.createElement('div');
     this.loadingOverlay.className = 'terminal-loading-overlay';

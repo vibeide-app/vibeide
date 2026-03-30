@@ -554,9 +554,9 @@ select:focus-visible {
   to { opacity: 0; transform: translateX(100%); }
 }
 
-.toast--needs-input { background: color-mix(in srgb, var(--warning) 6%, transparent); }
-.toast--complete { background: color-mix(in srgb, var(--success) 6%, transparent); }
-.toast--error { background: color-mix(in srgb, var(--error) 6%, transparent); }
+.toast--needs-input { background: color-mix(in srgb, var(--warning) 10%, transparent); }
+.toast--complete { background: color-mix(in srgb, var(--success) 10%, transparent); }
+.toast--error { background: color-mix(in srgb, var(--error) 10%, transparent); }
 
 .toast-dot {
   width: 8px;
