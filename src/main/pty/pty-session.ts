@@ -33,16 +33,37 @@ function buildSafeEnv(
     env.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   }
 
-  // Ensure NVM node is in PATH (Electron doesn't source .bashrc)
-  const nvmDir = process.env.NVM_DIR || `${process.env.HOME}/.nvm`;
+  // Ensure common tool paths are available (Electron doesn't source .bashrc/.zshrc)
+  const fs = require('node:fs');
+  const nodePath = require('node:path');
+  const home = process.env.HOME || '';
+
+  // macOS: Homebrew paths (Apple Silicon + Intel)
+  const extraPaths = [
+    '/opt/homebrew/bin',       // macOS Apple Silicon Homebrew
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',          // macOS Intel Homebrew + standard tools
+    '/usr/local/sbin',
+    nodePath.join(home, '.local/bin'),  // pip install --user
+    nodePath.join(home, '.cargo/bin'),  // Rust/cargo installs
+  ];
+
+  for (const p of extraPaths) {
+    try {
+      if (fs.existsSync(p) && env.PATH && !env.PATH.includes(p)) {
+        env.PATH = `${p}:${env.PATH}`;
+      }
+    } catch { /* skip */ }
+  }
+
+  // NVM node path
+  const nvmDir = process.env.NVM_DIR || nodePath.join(home, '.nvm');
   try {
-    const fs = require('node:fs');
-    const path = require('node:path');
-    const versionsDir = path.join(nvmDir, 'versions', 'node');
+    const versionsDir = nodePath.join(nvmDir, 'versions', 'node');
     if (fs.existsSync(versionsDir)) {
       const versions = fs.readdirSync(versionsDir).sort().reverse();
       if (versions.length > 0) {
-        const nvmBin = path.join(versionsDir, versions[0], 'bin');
+        const nvmBin = nodePath.join(versionsDir, versions[0], 'bin');
         if (env.PATH && !env.PATH.includes(nvmBin)) {
           env.PATH = `${nvmBin}:${env.PATH}`;
         }

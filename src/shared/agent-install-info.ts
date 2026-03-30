@@ -4,15 +4,23 @@ export interface AgentInstallInfo {
   readonly command: string;
   readonly displayName: string;
   readonly installCommand: string;
+  readonly installCommandMac?: string;
   readonly docsUrl: string;
   readonly description: string;
+}
+
+const isMac = typeof process !== 'undefined' && process.platform === 'darwin';
+
+function pick(npm: string, mac?: string): string {
+  return (isMac && mac) ? mac : npm;
 }
 
 export const AGENT_INSTALL_INFO: Partial<Record<AgentType, AgentInstallInfo>> = {
   claude: {
     command: 'claude',
     displayName: 'Claude Code',
-    installCommand: 'npm install -g @anthropic-ai/claude-code',
+    installCommand: pick('npm install -g @anthropic-ai/claude-code', 'brew install anthropic-ai/tap/claude-code'),
+    installCommandMac: 'brew install anthropic-ai/tap/claude-code',
     docsUrl: 'https://docs.anthropic.com/en/docs/claude-code',
     description: 'Anthropic\'s AI coding agent for the terminal',
   },
@@ -33,14 +41,16 @@ export const AGENT_INSTALL_INFO: Partial<Record<AgentType, AgentInstallInfo>> = 
   aider: {
     command: 'aider',
     displayName: 'Aider',
-    installCommand: 'pip install aider-chat',
+    installCommand: pick('pip install aider-chat', 'brew install aider'),
+    installCommandMac: 'brew install aider',
     docsUrl: 'https://aider.chat/',
     description: 'AI pair programming in your terminal — supports 100+ LLMs',
   },
   opencode: {
     command: 'opencode',
     displayName: 'OpenCode',
-    installCommand: 'npm install -g opencode-ai@latest',
+    installCommand: pick('npm install -g opencode-ai@latest', 'brew install opencode-ai/tap/opencode'),
+    installCommandMac: 'brew install opencode-ai/tap/opencode',
     docsUrl: 'https://opencode.ai/docs/',
     description: 'Terminal-based AI coding agent with TUI',
   },
@@ -54,7 +64,8 @@ export const AGENT_INSTALL_INFO: Partial<Record<AgentType, AgentInstallInfo>> = 
   copilot: {
     command: 'copilot',
     displayName: 'GitHub Copilot CLI',
-    installCommand: 'npm install -g @github/copilot',
+    installCommand: pick('npm install -g @github/copilot', 'brew install gh && gh extension install github/gh-copilot'),
+    installCommandMac: 'brew install gh && gh extension install github/gh-copilot',
     docsUrl: 'https://docs.github.com/en/copilot',
     description: 'GitHub\'s AI coding assistant for the terminal',
   },
