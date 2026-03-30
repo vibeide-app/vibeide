@@ -52,6 +52,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - run: python3 -m pip install setuptools --break-system-packages
       - run: npm ci
       - run: npx electron-vite build
       - run: npx electron-builder --mac
@@ -74,6 +75,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - run: python3 -m pip install setuptools
       - run: npm ci
       - run: npx electron-vite build
       - run: npx electron-builder --win
