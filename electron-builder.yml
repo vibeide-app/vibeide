@@ -35,3 +35,29 @@ deb:
     - libuuid1
 appImage:
   artifactName: VibeIDE-${version}-${arch}.AppImage
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  icon: resources/icons/512x512.png
+  artifactName: VibeIDE-${version}-${arch}.${ext}
+  hardenedRuntime: true
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+dmg:
+  artifactName: VibeIDE-${version}-${arch}.dmg
+win:
+  target:
+    - nsis
+    - portable
+  icon: resources/icons/512x512.png
+  artifactName: VibeIDE-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: VibeIDE
+publish:
+  provider: github
+  owner: nandadevaiah
+  repo: vibeide
