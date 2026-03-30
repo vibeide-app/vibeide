@@ -1233,6 +1233,27 @@
   animation: overlay-in var(--transition-normal);
 }
 
+/* Pop-out mode: no backdrop, panel fills window */
+.popout-mode .file-viewer-overlay {
+  background: none;
+  padding: 0;
+}
+
+.popout-mode .file-viewer-panel {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.popout-mode .file-viewer-popout,
+.popout-mode .file-viewer-close {
+  display: none;
+}
+
 .file-viewer-panel {
   width: 100%;
   max-width: none;

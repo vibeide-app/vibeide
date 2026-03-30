@@ -121,7 +121,9 @@ export class FileViewer {
     popoutBtn.textContent = '\u2197';
     popoutBtn.title = 'Open in new window';
     popoutBtn.setAttribute('aria-label', 'Pop out to new window');
-    popoutBtn.addEventListener('click', () => this.popout());
+    popoutBtn.addEventListener('click', () => {
+      this.popout();
+    });
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'file-viewer-close';
@@ -456,17 +458,9 @@ export class FileViewer {
   // --- Edit mode ---
 
   private async popout(): Promise<void> {
-    if (!this.currentFilePath) return;
+    if (!this.rootPath) return;
     try {
-      let content = '';
-      if (this.editorView) {
-        content = this.editorView.state.doc.toString();
-      } else {
-        // Try loading the file content directly
-        const result = await window.api.file.read(this.currentFilePath);
-        content = result?.content ?? '';
-      }
-      await window.api.window.popoutFile(this.currentFilePath, content);
+      await window.api.window.popoutFile(this.rootPath, this.currentFilePath || undefined);
     } catch (error) {
       console.error('[FileViewer] Pop-out failed:', error);
     }

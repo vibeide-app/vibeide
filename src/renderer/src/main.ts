@@ -35,6 +35,21 @@ function main(): void {
 
   applyTheme(loadSavedTheme());
 
+  // Check if this is a pop-out window
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('popout') === 'file-viewer') {
+    const projectPath = urlParams.get('project') ?? '';
+    const filePath = urlParams.get('file') ?? undefined;
+    if (projectPath) {
+      document.body.classList.add('popout-mode');
+      const viewer = new FileViewer();
+      viewer.show(projectPath).then(() => {
+        if (filePath) viewer.openFile(filePath);
+      });
+      return; // Don't load the full app
+    }
+  }
+
   // Custom title bar
   const titleBar = document.createElement('div');
   titleBar.className = 'app-titlebar';

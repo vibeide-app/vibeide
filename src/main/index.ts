@@ -110,47 +110,36 @@ earlyIpcMain.handle('window:zoom-reset', (event: { sender: unknown }) => {
 });
 
 // Pop-out file viewer in a new window
-earlyIpcMain.handle('window:popout-file', async (_event: unknown, args: { filePath: string; content: string }) => {
+earlyIpcMain.handle('window:popout-file', async (_event: unknown, args: { projectPath: string; filePath?: string }) => {
   const { BrowserWindow: BW } = require('electron');
   const nodePath = require('node:path');
-  const nodeFs = require('node:fs');
-  const nodeOs = require('node:os');
-  const fileName = nodePath.basename(args.filePath);
-  const escaped = (args.content || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${fileName} - VibeIDE</title>
-<style>
-  body { margin: 0; background: #1a1b26; color: #c0caf5; font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; }
-  .header { padding: 8px 16px; background: #16161e; border-bottom: 1px solid #2a2b3d; font-size: 12px; color: #737aa2; display: flex; justify-content: space-between; position: sticky; top: 0; }
-  .path { color: #7aa2f7; }
-  pre { margin: 0; padding: 16px; overflow: auto; line-height: 1.6; tab-size: 4; white-space: pre; }
-  .ln { display: inline-block; width: 48px; text-align: right; color: #414868; margin-right: 16px; user-select: none; }
-</style></head><body>
-<div class="header"><span class="path">${args.filePath}</span><span>${escaped.split('\n').length} lines</span></div>
-<pre>${escaped.split('\n').map((line: string, i: number) => '<span class="ln">' + (i + 1) + '</span>' + line).join('\n')}</pre>
-</body></html>`;
-
-  // Write to temp file to avoid data: URL CSP issues
-  const tmpPath = nodePath.join(nodeOs.tmpdir(), `vibeide-popout-${Date.now()}.html`);
-  nodeFs.writeFileSync(tmpPath, html, 'utf-8');
+  const projectName = nodePath.basename(args.projectPath);
 
   const popout = new BW({
-    width: 900,
-    height: 700,
-    title: `${fileName} - VibeIDE`,
+    width: 1000,
+    height: 750,
+    title: `${projectName} — File Viewer — VibeIDE`,
+    webPreferences: {
+      preload: nodePath.join(__dirname, '../preload/index.js'),
+      sandbox: false,
+    },
   });
 
-  popout.loadFile(tmpPath);
+  // Load the same renderer URL with popout query params
+  const mainWindow = BW.getAllWindows().find((w: { id: number }) => w.id !== popout.id);
+  if (mainWindow) {
+    const url = mainWindow.webContents.getURL();
+    const baseUrl = url.split('?')[0].split('#')[0];
+    const params = new URLSearchParams({
+      popout: 'file-viewer',
+      project: args.projectPath,
+      ...(args.filePath ? { file: args.filePath } : {}),
+    });
+    popout.loadURL(`${baseUrl}?${params.toString()}`);
+  }
+
   popout.setMenuBarVisibility(false);
-
-  // Clean up temp file when window closes
-  popout.on('closed', () => {
-    try { nodeFs.unlinkSync(tmpPath); } catch { /* */ }
-  });
 });
 
 // Enable speech recognition on Linux
