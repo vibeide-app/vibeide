@@ -1,6 +1,6 @@
 # VibeIDE — Goals, Phases & Tasks
 
-> Last updated: 2026-03-29
+> Last updated: 2026-03-30
 
 ---
 
@@ -113,7 +113,7 @@ Close and reopen with zero setup cost — layout, agents, scrollback all restore
   - [x] Save/restore window position and size
   - [x] Save/restore project list and active project
   - [x] Save/restore agent configurations per project
-  - [ ] Save/restore terminal scrollback buffers
+  - [x] Save/restore terminal scrollback buffers
   - [x] Save/restore pane layout (splits, sizes)
 - **Phase 2 (Native Rust)**
   - [ ] Binary serialization for fast restore (<500ms startup)
@@ -147,9 +147,9 @@ Everything reachable via keybinding or fuzzy-searchable palette in <50ms.
   - [x] Fuzzy matching (replace `includes()` with proper fuzzy)
   - [x] Categorized commands (Agent, Layout, File, Theme)
   - [x] Recently-used commands at top
-  - [ ] Context-aware filtering (commands change by focused pane)
+  - [x] Context-aware filtering (commands change by focused pane)
   - [x] Inline keyboard shortcut display
-  - [ ] Agent-registered custom commands
+  - [x] Agent-registered custom commands
 - **Phase 2 (Native Rust)**
   - [ ] GPU-rendered command palette overlay
   - [ ] Plugin-extensible command registry
@@ -165,7 +165,7 @@ Currently only 1 light theme (Tokyo Night Light). Add at least 3 more for users 
   - [x] Solarized Light theme
   - [x] GitHub Light theme
   - [x] Catppuccin Latte theme (light variant)
-  - [ ] Ensure all UI components (sidebar, status bars, command palette, file viewer, Source Control, commit graph) render correctly in light themes
+  - [x] Ensure all UI components (sidebar, status bars, command palette, file viewer, Source Control, commit graph) render correctly in light themes
   - [x] Ensure terminal WebGL renderer handles light backgrounds
   - [x] Light/dark mode toggle in command palette and settings
 
