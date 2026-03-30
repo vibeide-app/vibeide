@@ -132,102 +132,110 @@
   right: 2px;
 }
 
-.sidebar-header {
+/* --- Sidebar logo banner --- */
+.sidebar-logo-banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
+  justify-content: center;
+  gap: 1px;
+  padding: var(--space-5) var(--space-4) var(--space-4);
 }
 
+.sidebar-logo {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.sidebar-logo svg {
+  display: block;
+}
+
+.sidebar-logo-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+.sidebar-logo-text-ide {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* --- Sidebar toolbar --- */
+.sidebar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.sidebar-toolbar-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-toolbar-btn:active { transform: scale(0.95); }
+
+.sidebar-toolbar-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sidebar-toolbar-btn.sidebar-launch-btn {
+  color: var(--success);
+}
+
+.sidebar-toolbar-btn.sidebar-launch-btn:hover {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  border-color: var(--success);
+}
+
+.sidebar-toolbar-btn.sidebar-equalize-btn:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sidebar-toolbar-btn.sidebar-add-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* --- Sidebar section header --- */
+.sidebar-section-header {
+  font-weight: 600;
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--fg-faint);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* Keep .sidebar-title for any remaining references */
 .sidebar-title {
   font-weight: 600;
   font-size: var(--font-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   color: var(--fg-dim);
-}
-
-.sidebar-launch-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--success);
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.sidebar-launch-btn:hover {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
-  border-color: var(--success);
-}
-
-.sidebar-launch-btn:active { transform: scale(0.95); }
-
-.sidebar-launch-btn:focus-visible {
-  outline: 2px solid var(--success);
-  outline-offset: -2px;
-}
-
-.sidebar-equalize-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--accent);
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.sidebar-equalize-btn:hover {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  border-color: var(--accent);
-}
-
-.sidebar-equalize-btn:active { transform: scale(0.95); }
-
-.sidebar-equalize-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.add-agent-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.add-agent-btn:hover {
-  background: var(--surface-hover);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.add-agent-btn:active { transform: scale(0.95); }
-
-.add-agent-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
 }
 
 /* ============================================

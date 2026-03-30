@@ -232,7 +232,7 @@ Run multiple agents safely on the same project by giving each agent its own isol
   - [x] Merge workflow: one-click merge agent's branch back to main
   - [x] Cleanup: remove worktree after merge or agent kill
   - [x] Conflict detection: warn user if merge would conflict
-  - [ ] Option to disable worktree isolation (run agent in main working directory)
+  - [x] Option to disable worktree isolation (run agent in main working directory)
 - **Phase 2 (Native Rust)**
   - [ ] Automatic conflict resolution suggestions
   - [ ] Cherry-pick individual changes from agent worktrees

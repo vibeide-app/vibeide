@@ -4,6 +4,20 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../../../resources/fonts/SpaceGrotesk-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../../../resources/fonts/SpaceGrotesk-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;

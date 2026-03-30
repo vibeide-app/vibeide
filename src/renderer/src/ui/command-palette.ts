@@ -100,6 +100,13 @@ export class CommandPalette {
     this.commands.push(command);
   }
 
+  updateLabel(id: string, label: string): void {
+    const idx = this.commands.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      this.commands[idx] = { ...this.commands[idx], label };
+    }
+  }
+
   registerDynamic(prefix: string, commands: Command[]): void {
     this.dynamicCommands.set(prefix, commands);
   }

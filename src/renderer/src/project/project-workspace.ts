@@ -39,6 +39,7 @@ export class ProjectWorkspace {
   readonly layoutManager: LayoutManager;
   private readonly tracked = new Map<string, { readonly info: AgentInfo; readonly statusBar: AgentStatusBar }>();
   private active = false;
+  useWorktree = true;
 
   constructor(projectId: string, projectPath: string) {
     this.projectId = projectId;
@@ -112,6 +113,7 @@ export class ProjectWorkspace {
         type,
         projectId: this.projectId,
         cwd: this.projectPath,
+        useWorktree: this.useWorktree,
       });
 
       const statusBar = new AgentStatusBar(info, {
@@ -169,6 +171,7 @@ export class ProjectWorkspace {
           projectId: this.projectId,
           cwd: this.projectPath,
           label: slot.label,
+          useWorktree: this.useWorktree,
         });
 
         // Check for IPC error response

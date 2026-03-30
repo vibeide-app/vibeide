@@ -42,7 +42,7 @@ export function validateKillRequest(raw: unknown): { sessionId: string } {
   return { sessionId: validateSessionId(req.sessionId) };
 }
 
-export function validateAgentSpawnRequest(raw: unknown): { type: AgentType; projectId: string; cwd?: string; label?: string } {
+export function validateAgentSpawnRequest(raw: unknown): { type: AgentType; projectId: string; cwd?: string; label?: string; useWorktree?: boolean } {
   if (typeof raw !== 'object' || raw === null) throw new Error('Invalid request');
   const req = raw as Record<string, unknown>;
   if (!ALLOWED_AGENT_TYPES.has(req.type as AgentType)) {
@@ -51,7 +51,7 @@ export function validateAgentSpawnRequest(raw: unknown): { type: AgentType; proj
   if (typeof req.projectId !== 'string' || !UUID_RE.test(req.projectId)) {
     throw new Error('Invalid projectId');
   }
-  const result: { type: AgentType; projectId: string; cwd?: string; label?: string } = {
+  const result: { type: AgentType; projectId: string; cwd?: string; label?: string; useWorktree?: boolean } = {
     type: req.type as AgentType,
     projectId: req.projectId,
   };
@@ -67,6 +67,10 @@ export function validateAgentSpawnRequest(raw: unknown): { type: AgentType; proj
   if (req.label !== undefined) {
     if (typeof req.label !== 'string') throw new Error('Invalid label');
     result.label = req.label.slice(0, 100);
+  }
+  if (req.useWorktree !== undefined) {
+    if (typeof req.useWorktree !== 'boolean') throw new Error('Invalid useWorktree');
+    result.useWorktree = req.useWorktree;
   }
   return result;
 }

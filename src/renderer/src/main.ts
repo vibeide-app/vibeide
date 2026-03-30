@@ -88,8 +88,9 @@ function main(): void {
   // Font size state
   let terminalFontSize = 14;
   let uiFontSize = 13;
+  let worktreeIsolation = true;
 
-  // Load font/sidebar settings
+  // Load font/sidebar/worktree settings
   window.api.settings.load().then((s) => {
     if (s.terminalFontSize && typeof s.terminalFontSize === 'number') {
       terminalFontSize = s.terminalFontSize as number;
@@ -100,6 +101,9 @@ function main(): void {
     }
     if (s.sidebarWidth && typeof s.sidebarWidth === 'number') {
       sidebarEl.style.width = `${s.sidebarWidth}px`;
+    }
+    if (typeof s.worktreeIsolation === 'boolean') {
+      worktreeIsolation = s.worktreeIsolation;
     }
   }).catch(() => {});
 
@@ -181,6 +185,7 @@ function main(): void {
     if (projectId) {
       const workspace = workspaceSwitcher.getWorkspace(projectId);
       if (workspace) {
+        workspace.useWorktree = worktreeIsolation;
         const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info);
         projectSidebar.updateAgents(projectId, agents);
       }
@@ -536,6 +541,24 @@ function main(): void {
     label: 'New Qwen Code Agent in Project',
     category: 'Agent',
     action: () => spawnInActiveProject('qwen'),
+  });
+  commandPalette.register({
+    id: 'toggle-worktree-isolation',
+    label: worktreeIsolation ? 'Git: Disable Worktree Isolation' : 'Git: Enable Worktree Isolation',
+    category: 'Git',
+    action: () => {
+      worktreeIsolation = !worktreeIsolation;
+      for (const ws of workspaceSwitcher.getAllWorkspaces()) {
+        ws.useWorktree = worktreeIsolation;
+      }
+      commandPalette.updateLabel(
+        'toggle-worktree-isolation',
+        worktreeIsolation ? 'Git: Disable Worktree Isolation' : 'Git: Enable Worktree Isolation',
+      );
+      window.api.settings.load().then((s) => {
+        window.api.settings.save({ ...s, worktreeIsolation });
+      }).catch(() => {});
+    },
   });
   commandPalette.register({
     id: 'split-v',

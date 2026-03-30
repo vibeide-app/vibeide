@@ -2,6 +2,7 @@ import type { ProjectInfo } from '../../../shared/ipc-types';
 import type { AgentInfo, AgentType } from '../../../shared/agent-types';
 import { createStatusIndicator, updateStatusIndicator } from '../ui/status-indicator';
 import { createAgentIcon } from '../ui/agent-icons';
+import { logoMonoSvg } from '../ui/logo';
 
 export interface ProjectSidebarCallbacks {
   readonly onProjectSelect: (project: ProjectInfo) => void;
@@ -210,25 +211,26 @@ export class ProjectSidebar {
   private render(): void {
     this.container.replaceChildren();
 
-    const header = document.createElement('div');
-    header.className = 'sidebar-header';
+    // --- Logo banner ---
+    const logoBanner = document.createElement('div');
+    logoBanner.className = 'sidebar-logo-banner';
+    const logoEl = document.createElement('span');
+    logoEl.className = 'sidebar-logo';
+    logoEl.innerHTML = logoMonoSvg(32);
+    const logoText = document.createElement('span');
+    logoText.className = 'sidebar-logo-text';
+    logoText.innerHTML = 'Vibe<span class="sidebar-logo-text-ide">IDE</span>';
+    logoBanner.appendChild(logoEl);
+    logoBanner.appendChild(logoText);
+    this.container.appendChild(logoBanner);
 
-    const title = document.createElement('span');
-    title.className = 'sidebar-title';
-    title.textContent = 'Projects';
-
-    const addBtn = document.createElement('button');
-    addBtn.className = 'add-agent-btn';
-    addBtn.textContent = '+';
-    addBtn.title = 'Add Project';
-    addBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.callbacks.onProjectAdd();
-    });
+    // --- Toolbar row ---
+    const toolbar = document.createElement('div');
+    toolbar.className = 'sidebar-toolbar';
 
     const launchBtn = document.createElement('button');
-    launchBtn.className = 'sidebar-launch-btn';
-    launchBtn.textContent = '\u25B6';
+    launchBtn.className = 'sidebar-toolbar-btn sidebar-launch-btn';
+    launchBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><polygon points="3,2 13,8 3,14"/></svg>`;
     launchBtn.title = 'Launch Workspace';
     launchBtn.setAttribute('aria-label', 'Launch Workspace');
     launchBtn.addEventListener('click', (e) => {
@@ -237,21 +239,37 @@ export class ProjectSidebar {
     });
 
     const equalizeBtn = document.createElement('button');
-    equalizeBtn.className = 'sidebar-equalize-btn';
-    equalizeBtn.textContent = '\u2B1C';
-    equalizeBtn.title = 'Auto-arrange panes (equal size)';
+    equalizeBtn.className = 'sidebar-toolbar-btn sidebar-equalize-btn';
+    equalizeBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="6" height="12" rx="1"/><rect x="9" y="2" width="6" height="12" rx="1"/></svg>`;
+    equalizeBtn.title = 'Auto-arrange panes';
     equalizeBtn.setAttribute('aria-label', 'Auto-arrange panes');
     equalizeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onEqualizePanes?.();
     });
 
-    header.appendChild(title);
-    header.appendChild(launchBtn);
-    header.appendChild(equalizeBtn);
-    header.appendChild(addBtn);
-    this.container.appendChild(header);
+    const addBtn = document.createElement('button');
+    addBtn.className = 'sidebar-toolbar-btn sidebar-add-btn';
+    addBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>`;
+    addBtn.title = 'Add Project';
+    addBtn.setAttribute('aria-label', 'Add Project');
+    addBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.callbacks.onProjectAdd();
+    });
 
+    toolbar.appendChild(launchBtn);
+    toolbar.appendChild(equalizeBtn);
+    toolbar.appendChild(addBtn);
+    this.container.appendChild(toolbar);
+
+    // --- Projects section header ---
+    const sectionHeader = document.createElement('div');
+    sectionHeader.className = 'sidebar-section-header';
+    sectionHeader.textContent = 'Projects';
+    this.container.appendChild(sectionHeader);
+
+    // --- Project list ---
     const listEl = document.createElement('div');
     listEl.className = 'project-list-entries';
     this.container.appendChild(listEl);
