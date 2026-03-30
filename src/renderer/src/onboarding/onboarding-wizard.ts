@@ -1,9 +1,10 @@
 // Onboarding wizard — 5-step first-run experience
+// Welcome → Agents → AI Skills → Project → Ready
 
 import { WelcomeStep } from './onboarding-welcome';
 import { AgentsStep } from './onboarding-agents';
+import { SkillsStep } from './onboarding-skills';
 import { ProjectStep } from './onboarding-project';
-import { TourStep } from './onboarding-tour';
 import { ReadyStep } from './onboarding-ready';
 
 export interface StepRenderer {
@@ -17,7 +18,7 @@ interface OnboardingOptions {
   readonly onSkip: () => void;
 }
 
-const STEP_LABELS = ['Welcome', 'Agents', 'Project', 'Tour', 'Ready'];
+const STEP_LABELS = ['Welcome', 'Agents', 'AI Skills', 'Project', 'Ready'];
 const TOTAL_STEPS = 5;
 
 export class OnboardingWizard {
@@ -32,8 +33,8 @@ export class OnboardingWizard {
 
   private readonly welcomeStep = new WelcomeStep();
   private readonly agentsStep = new AgentsStep();
+  private readonly skillsStep = new SkillsStep();
   private readonly projectStep = new ProjectStep();
-  private readonly tourStep = new TourStep();
   private readonly readyStep = new ReadyStep();
 
   private readonly steps: StepRenderer[];
@@ -46,8 +47,8 @@ export class OnboardingWizard {
     this.steps = [
       this.welcomeStep,
       this.agentsStep,
+      this.skillsStep,
       this.projectStep,
-      this.tourStep,
       this.readyStep,
     ];
 
@@ -119,8 +120,22 @@ export class OnboardingWizard {
   }
 
   private async handleNext(): Promise<void> {
-    // Special actions per step before advancing
-    if (this.currentStep === 2 && this.projectStep.hasSelection()) {
+    // Step 1 → 2: Pass installed agents to skills step
+    if (this.currentStep === 1) {
+      const installedAgents = this.getInstalledAgentTypes();
+      this.skillsStep.setInstalledAgents(installedAgents);
+    }
+
+    // Step 2 → 3: Install selected skills
+    if (this.currentStep === 2) {
+      const selected = this.skillsStep.getSelectedSkillIds();
+      if (selected.length > 0) {
+        await this.skillsStep.install();
+      }
+    }
+
+    // Step 3: Create project if selected
+    if (this.currentStep === 3 && this.projectStep.hasSelection()) {
       await this.projectStep.createProject();
     }
 
@@ -148,6 +163,7 @@ export class OnboardingWizard {
     // Pre-render setup for ready step
     if (step === TOTAL_STEPS - 1) {
       this.readyStep.setAgentCount(this.agentsStep.getInstalledCount());
+      this.readyStep.setSkillCount(this.skillsStep.getSelectedSkillIds().length);
       window.api.project.list().then((projects) => {
         this.readyStep.setProjectCount(projects.length);
       });
@@ -168,6 +184,15 @@ export class OnboardingWizard {
       : step === TOTAL_STEPS - 1
         ? 'Start Building'
         : 'Next \u2192';
+  }
+
+  private getInstalledAgentTypes(): AgentType[] {
+    // Read from the agents step's availability data
+    const types: AgentType[] = [];
+    const agentList: AgentType[] = ['claude', 'gemini', 'codex', 'aider', 'opencode', 'cline', 'copilot', 'amp', 'continue', 'cursor', 'crush', 'qwen'];
+    // The agents step tracks installed count but we need the actual types
+    // For now, pass all — the installer filters by targetAgents per skill
+    return agentList;
   }
 
   private async complete(): Promise<void> {
@@ -205,3 +230,5 @@ export class OnboardingWizard {
     } catch { /* best-effort */ }
   }
 }
+
+type AgentType = import('../../../shared/agent-types').AgentType;

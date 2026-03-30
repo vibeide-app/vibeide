@@ -132,6 +132,13 @@ contextBridge.exposeInMainWorld('api', {
   onboarding: {
     detectProjects: () => ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_DETECT_PROJECTS),
   },
+  skills: {
+    manifest: () => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_MANIFEST),
+    install: (request: unknown) => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_INSTALL, request),
+    installed: () => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_INSTALLED),
+    uninstall: (skillId: string) => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_UNINSTALL, skillId),
+    detectLanguages: (projectPath: string) => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_DETECT_LANGS, projectPath),
+  },
   worktree: {
     diff: (agentId: string) => ipcRenderer.invoke(IPC_CHANNELS.WORKTREE_DIFF, agentId),
     diffFile: (request: { agentId: string; filePath: string }) =>

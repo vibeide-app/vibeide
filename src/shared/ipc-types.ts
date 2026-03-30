@@ -208,6 +208,13 @@ export interface VibeIDEApi {
   onboarding: {
     detectProjects(): Promise<Array<{ name: string; path: string }>>;
   };
+  skills: {
+    manifest(): Promise<import('./skills-types').SkillManifest>;
+    install(request: import('./skills-types').SkillInstallRequest): Promise<import('./skills-types').SkillsInstallResponse>;
+    installed(): Promise<readonly import('./skills-types').InstalledSkillRecord[]>;
+    uninstall(skillId: string): Promise<{ success?: boolean; error?: string }>;
+    detectLanguages(projectPath: string): Promise<readonly string[]>;
+  };
   worktree: {
     diff(agentId: string): Promise<import('./worktree-types').WorktreeDiffSummary | null>;
     diffFile(request: { agentId: string; filePath: string }): Promise<{ original: string; modified: string } | null>;

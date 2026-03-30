@@ -10,6 +10,9 @@ import type { StateManager } from '../state/state-manager';
 import type { ProjectManager } from '../project/project-manager';
 import type { NotificationManager } from '../notification/notification-manager';
 import { saveScrollback, loadScrollback, deleteScrollback } from '../scrollback-store';
+import { getSkillsManifest } from '../skills/skills-manifest';
+import { installSkills, loadInstalled, uninstallSkill } from '../skills/skills-installer';
+import { detectProjectLanguages } from '../skills/language-detector';
 import {
   validateSessionId,
   validateWriteRequest,
@@ -799,6 +802,35 @@ export function registerIpcHandlers(
     if (!notificationManager) return;
     if (typeof raw !== 'boolean') return;
     notificationManager.setEnabled(raw);
+  });
+
+  // Skills
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_MANIFEST, async () => {
+    return getSkillsManifest();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_INSTALL, async (_event, raw: unknown) => {
+    if (!raw || typeof raw !== 'object') return { results: [], summary: { installed: 0, failed: 0, skipped: 0 } };
+    const req = raw as { skillIds: string[]; targetAgents: string[] };
+    if (!Array.isArray(req.skillIds) || !Array.isArray(req.targetAgents)) {
+      return { results: [], summary: { installed: 0, failed: 0, skipped: 0 } };
+    }
+    return installSkills({ skillIds: req.skillIds, targetAgents: req.targetAgents as any });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_INSTALLED, async () => {
+    return loadInstalled();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_UNINSTALL, async (_event, skillId: unknown) => {
+    if (typeof skillId !== 'string') return { error: 'Invalid skill ID' };
+    return uninstallSkill(skillId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_DETECT_LANGS, async (_event, projectPath: unknown) => {
+    if (typeof projectPath !== 'string') return [];
+    return detectProjectLanguages(projectPath);
   });
 
   // Onboarding: detect git projects in common directories
