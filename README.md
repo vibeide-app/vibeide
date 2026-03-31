@@ -117,4 +117,4 @@ npm run dist:win   # build .exe
 
 ## License
 
-[AGPL-3.0](LICENSE) — free for individual use. See [monetization strategy](docs/monetization-strategy.md) for details on the open-core model.
+[AGPL-3.0](LICENSE) — free for individual use.
