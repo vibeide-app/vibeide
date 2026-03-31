@@ -9,16 +9,22 @@ exports.default = async function (configuration) {
   const filePath = configuration.path;
   console.log(`Signing: ${filePath}`);
 
-  execSync(
-    `AzureSignTool sign ` +
-      `-kvu "${process.env.AZURE_ENDPOINT}" ` +
-      `-kvi "${process.env.AZURE_CLIENT_ID}" ` +
-      `-kvs "${process.env.AZURE_CLIENT_SECRET}" ` +
-      `-kvt "${process.env.AZURE_TENANT_ID}" ` +
-      `-kvc "${process.env.AZURE_CERT_PROFILE_NAME}" ` +
-      `-tr http://timestamp.acs.microsoft.com ` +
-      `-td sha256 ` +
-      `"${filePath}"`,
-    { stdio: "inherit" }
-  );
+  try {
+    execSync(
+      `AzureSignTool sign ` +
+        `-kvu "${process.env.AZURE_ENDPOINT.trim()}" ` +
+        `-kvi "${process.env.AZURE_CLIENT_ID.trim()}" ` +
+        `-kvs "${process.env.AZURE_CLIENT_SECRET.trim()}" ` +
+        `-kvt "${process.env.AZURE_TENANT_ID.trim()}" ` +
+        `-kvc "${process.env.AZURE_CERT_PROFILE_NAME.trim()}" ` +
+        `-tr http://timestamp.acs.microsoft.com ` +
+        `-td sha256 ` +
+        `"${filePath}"`,
+      { stdio: "inherit" }
+    );
+    console.log(`Signed: ${filePath}`);
+  } catch (error) {
+    console.warn(`WARNING: Signing failed for ${filePath}. Producing unsigned build.`);
+    console.warn(`Error: ${error.message}`);
+  }
 };
