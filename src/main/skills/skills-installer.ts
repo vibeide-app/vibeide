@@ -11,7 +11,7 @@ import { getSkillsManifest } from './skills-manifest';
 const SKILLS_DIR = path.join(homedir(), '.vibeide', 'skills');
 const INSTALLED_JSON = path.join(SKILLS_DIR, 'installed.json');
 
-const REPO_OWNER = 'NandaDevaiah';
+const REPO_OWNER = 'vibeide-app';
 const REPO_NAME = 'AISkills';
 const BRANCH = 'main';
 
