@@ -39,32 +39,39 @@ Skills are installed to each agent's config directory (`~/.claude/skills/`, `~/.
 
 ### Linux
 
-Download from [Releases](https://github.com/nandadevaiah/vibeide/releases):
-
 ```bash
-# Debian/Ubuntu
-sudo dpkg -i vibeide_0.1.0_amd64.deb
+# One-liner: download and install .deb (Debian/Ubuntu)
+gh release download --repo nandadevaiah/vibeide --pattern "*.deb" && sudo dpkg -i vibeide_*_amd64.deb
 
-# AppImage (any distro)
-chmod +x VibeIDE-0.1.0-x86_64.AppImage
-./VibeIDE-0.1.0-x86_64.AppImage
+# AppImage (any distro, no install needed)
+gh release download --repo nandadevaiah/vibeide --pattern "*.AppImage" && chmod +x VibeIDE-*.AppImage && ./VibeIDE-*.AppImage
 ```
+
+Or download manually from [Releases](https://github.com/nandadevaiah/vibeide/releases).
 
 ### macOS
 
-Download the `.dmg` from [Releases](https://github.com/nandadevaiah/vibeide/releases), open it, and drag VibeIDE to Applications.
+```bash
+gh release download --repo nandadevaiah/vibeide --pattern "*-arm64.dmg"
+```
 
-**Important:** VibeIDE is not yet code-signed. macOS will show "VibeIDE is damaged" on first open. Run this once to fix:
+Open the `.dmg` and drag VibeIDE to Applications.
+
+**Note:** VibeIDE is not yet code-signed for macOS. On first open, run:
 
 ```bash
 xattr -cr /Applications/VibeIDE.app
 ```
 
-Then open VibeIDE normally.
-
 ### Windows
 
-Download the `.exe` installer from [Releases](https://github.com/nandadevaiah/vibeide/releases) and run it.
+```powershell
+gh release download --repo nandadevaiah/vibeide --pattern "*.exe"
+```
+
+Run the downloaded `.exe` installer. Windows builds are signed with Azure Trusted Signing.
+
+Or download from [Releases](https://github.com/nandadevaiah/vibeide/releases).
 
 ## Quick Start
 
