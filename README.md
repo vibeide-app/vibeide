@@ -24,7 +24,7 @@ Run Claude, Gemini, Aider, and 9 more AI agents side by side — in split panes,
 
 ## AI Skills
 
-VibeIDE bundles pre-packaged skills from the [AISkills](https://github.com/NandaDevaiah/AISkills) repository. During onboarding (or later from the command palette), you can install:
+VibeIDE bundles pre-packaged skills from the [AISkills](https://github.com/vibeide-app/AISkills) repository. During onboarding (or later from the command palette), you can install:
 
 - **Coding standards** — universal best practices, language-specific rules
 - **TDD workflow** — test-driven development with 80%+ coverage enforcement
@@ -41,11 +41,11 @@ Skills are installed to each agent's config directory (`~/.claude/skills/`, `~/.
 
 ```bash
 # Debian/Ubuntu — download and install .deb
-curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/vibeide_0.1.0_amd64.deb
+curl -sLO https://github.com/vibeide-app/vibeide/releases/latest/download/vibeide_0.1.0_amd64.deb
 sudo dpkg -i vibeide_0.1.0_amd64.deb
 
 # AppImage (any distro, no install needed)
-curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/VibeIDE-0.1.0-x86_64.AppImage
+curl -sLO https://github.com/vibeide-app/vibeide/releases/latest/download/VibeIDE-0.1.0-x86_64.AppImage
 chmod +x VibeIDE-0.1.0-x86_64.AppImage
 ./VibeIDE-0.1.0-x86_64.AppImage
 ```
@@ -53,13 +53,13 @@ chmod +x VibeIDE-0.1.0-x86_64.AppImage
 Or with GitHub CLI:
 
 ```bash
-gh release download --repo nandadevaiah/vibeide --pattern "*.deb" && sudo dpkg -i vibeide_*_amd64.deb
+gh release download --repo vibeide-app/vibeide --pattern "*.deb" && sudo dpkg -i vibeide_*_amd64.deb
 ```
 
 ### macOS
 
 ```bash
-curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/VibeIDE-0.1.0-arm64.dmg
+curl -sLO https://github.com/vibeide-app/vibeide/releases/latest/download/VibeIDE-0.1.0-arm64.dmg
 ```
 
 Open the `.dmg` and drag VibeIDE to Applications.
@@ -73,14 +73,14 @@ xattr -cr /Applications/VibeIDE.app
 ### Windows
 
 ```powershell
-curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/VibeIDE-0.1.0-x64.exe
+curl -sLO https://github.com/vibeide-app/vibeide/releases/latest/download/VibeIDE-0.1.0-x64.exe
 ```
 
 Run the downloaded `.exe` installer. Windows builds are signed with Azure Trusted Signing.
 
-Or with GitHub CLI: `gh release download --repo nandadevaiah/vibeide --pattern "*.exe"`
+Or with GitHub CLI: `gh release download --repo vibeide-app/vibeide --pattern "*.exe"`
 
-Or download from [Releases](https://github.com/nandadevaiah/vibeide/releases).
+Or download from [Releases](https://github.com/vibeide-app/vibeide/releases).
 
 ## Quick Start
 
@@ -112,7 +112,7 @@ Or download from [Releases](https://github.com/nandadevaiah/vibeide/releases).
 ## Build from Source
 
 ```bash
-git clone https://github.com/nandadevaiah/vibeide.git
+git clone https://github.com/vibeide-app/vibeide.git
 cd vibeide
 npm install
 npm run dev        # development
