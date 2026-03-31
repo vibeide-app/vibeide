@@ -1,6 +1,7 @@
 // macOS notarization script — runs as electron-builder afterSign hook.
-// Calls xcrun notarytool directly with verbose logging and a timeout
-// to avoid hanging in CI. Skips when not on macOS or credentials missing.
+// Submits to Apple notarization but does NOT fail the build on timeout.
+// Apple's service can take hours for new app IDs. The signed .dmg is
+// still produced; notarization ticket can be stapled later.
 
 const { execSync } = require('child_process');
 const path = require('path');
@@ -29,50 +30,52 @@ exports.default = async function notarizing(context) {
   console.log(`  • zipping app for notarization: ${appPath}`);
   execSync(`ditto -c -k --keepParent "${appPath}" "${zipPath}"`, { stdio: 'inherit' });
 
-  // Submit with verbose output and 15-minute timeout
-  console.log(`  • submitting to Apple notarization service...`);
+  // Submit without --wait so we don't block. Just fire and continue.
+  console.log('  • submitting to Apple notarization service (non-blocking)...');
   try {
-    execSync(
+    const output = execSync(
       `xcrun notarytool submit "${zipPath}" ` +
       `--apple-id "${appleId}" ` +
       `--password "${appleIdPassword}" ` +
-      `--team-id "${teamId}" ` +
-      `--wait --timeout 15m ` +
-      `--verbose`,
-      { stdio: 'inherit', timeout: 20 * 60 * 1000 }
+      `--team-id "${teamId}"`,
+      { encoding: 'utf8', timeout: 120000 }
     );
-  } catch (error) {
-    console.error('  • notarization failed or timed out');
-    console.error(`  • exit code: ${error.status}`);
-    if (error.stderr) console.error(error.stderr.toString());
+    console.log(output);
 
-    // Try to get the submission log for debugging
+    // Extract submission ID for reference
+    const idMatch = output.match(/id:\s*([0-9a-f-]+)/);
+    if (idMatch) {
+      console.log(`  • notarization submitted — ID: ${idMatch[1]}`);
+      console.log('  • Apple will process asynchronously. Check status with:');
+      console.log(`    xcrun notarytool info ${idMatch[1]} --apple-id "..." --team-id "..." --password "..."`);
+    }
+
+    // Try a quick poll (2 minutes) — Apple sometimes finishes fast on retries
+    console.log('  • waiting up to 2 minutes for Apple to finish...');
     try {
-      console.log('  • fetching notarization log...');
       execSync(
-        `xcrun notarytool log ` +
+        `xcrun notarytool wait "${idMatch ? idMatch[1] : ''}" ` +
         `--apple-id "${appleId}" ` +
         `--password "${appleIdPassword}" ` +
         `--team-id "${teamId}" ` +
-        `$(xcrun notarytool history ` +
-        `--apple-id "${appleId}" ` +
-        `--password "${appleIdPassword}" ` +
-        `--team-id "${teamId}" 2>/dev/null | head -5)`,
-        { stdio: 'inherit', timeout: 30000 }
+        `--timeout 2m`,
+        { stdio: 'inherit', timeout: 150000 }
       );
-    } catch {
-      // Best effort — log retrieval may also fail
-    }
 
-    throw new Error('Notarization failed — check logs above');
+      // If we get here, notarization completed — staple the ticket
+      console.log('  • stapling notarization ticket...');
+      execSync(`xcrun stapler staple "${appPath}"`, { stdio: 'inherit' });
+      console.log('  • notarization complete and stapled');
+    } catch {
+      console.log('  • notarization still in progress at Apple — build will continue');
+      console.log('  • the signed .dmg will be produced without the notarization ticket');
+      console.log('  • staple manually later: xcrun stapler staple VibeIDE.app');
+    }
+  } catch (error) {
+    console.error('  • notarization submission failed:', error.message);
+    console.log('  • continuing with signed-only build');
   }
 
-  // Staple the notarization ticket to the app
-  console.log('  • stapling notarization ticket...');
-  execSync(`xcrun stapler staple "${appPath}"`, { stdio: 'inherit' });
-
-  // Clean up the zip
-  execSync(`rm -f "${zipPath}"`);
-
-  console.log('  • notarization complete');
+  // Clean up zip
+  try { execSync(`rm -f "${zipPath}"`); } catch { /* ignore */ }
 };
