@@ -2,6 +2,7 @@ export class KeybindingManager {
   private readonly bindings = new Map<string, () => void>();
   private readonly keyupBindings = new Map<string, () => void>();
   private readonly heldKeys = new Set<string>();
+  private readonly isMac = navigator.platform.toUpperCase().includes('MAC');
 
   constructor() {
     window.addEventListener('keydown', (e) => this.handleKeydown(e), true);
@@ -63,8 +64,13 @@ export class KeybindingManager {
       const needsMeta = parts.includes('meta');
 
       // Fire keyup if any required modifier was released
+      // On macOS, Cmd (Meta) release also counts as Ctrl release
+      const ctrlReleased = needsCtrl && (
+        (!e.ctrlKey && e.key === 'Control') ||
+        (this.isMac && !e.metaKey && e.key === 'Meta')
+      );
       const released =
-        (needsCtrl && !e.ctrlKey && e.key === 'Control') ||
+        ctrlReleased ||
         (needsShift && !e.shiftKey && e.key === 'Shift') ||
         (needsAlt && !e.altKey && e.key === 'Alt') ||
         (needsMeta && !e.metaKey && e.key === 'Meta') ||
@@ -83,10 +89,11 @@ export class KeybindingManager {
 
   private normalizeEvent(e: KeyboardEvent): string {
     const parts: string[] = [];
-    if (e.ctrlKey) parts.push('ctrl');
+    // On macOS, treat Cmd (Meta) as Ctrl so all ctrl+ bindings work with Cmd
+    if (e.ctrlKey || (this.isMac && e.metaKey)) parts.push('ctrl');
     if (e.altKey) parts.push('alt');
     if (e.shiftKey) parts.push('shift');
-    if (e.metaKey) parts.push('meta');
+    if (!this.isMac && e.metaKey) parts.push('meta');
 
     let key = e.key.toLowerCase();
     if (key === ' ') key = 'space';

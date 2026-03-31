@@ -35,6 +35,9 @@ export function createMainWindow(savedBounds?: SavedWindowBounds): BrowserWindow
     backgroundColor: '#1a1b26',
     frame: false,
     titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? {
+      trafficLightPosition: { x: 13, y: 10 },
+    } : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -57,8 +60,10 @@ export function createMainWindow(savedBounds?: SavedWindowBounds): BrowserWindow
   }
 
   // Disable Chromium's built-in zoom shortcuts — we handle zoom via IPC
+  // On macOS, Cmd (meta) acts as the primary modifier instead of Ctrl
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.control && input.type === 'keyDown') {
+    const modifier = input.control || (process.platform === 'darwin' && input.meta);
+    if (modifier && input.type === 'keyDown') {
       if (input.shift && (input.key === '+' || input.key === '=' || input.key === '_' || input.key === '-')) {
         event.preventDefault();
       }

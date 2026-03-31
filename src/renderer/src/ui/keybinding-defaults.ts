@@ -19,7 +19,7 @@ export const KEYBINDING_DEFAULTS: readonly KeybindingDefinition[] = [
   { id: 'split-horizontal', label: 'Split Horizontal', defaultKey: 'ctrl+shift+e' },
   { id: 'close-pane', label: 'Close Pane', defaultKey: 'ctrl+shift+w' },
   { id: 'search-terminal', label: 'Search in Terminal', defaultKey: 'ctrl+shift+f' },
-  { id: 'voice-push-to-talk', label: 'Voice Dictation (PTT)', defaultKey: 'ctrl+shift+m', holdMode: true },
+  { id: 'voice-push-to-talk', label: 'Voice Dictation (PTT)', defaultKey: 'f3', holdMode: true },
   { id: 'voice-command', label: 'Voice Command (PTT)', defaultKey: 'f4', holdMode: true },
   { id: 'font-increase', label: 'Terminal Font: Increase', defaultKey: 'ctrl+=' },
   { id: 'font-decrease', label: 'Terminal Font: Decrease', defaultKey: 'ctrl+-' },
@@ -75,9 +75,19 @@ export function getDefinitionById(id: string): KeybindingDefinition | undefined 
   return KEYBINDING_DEFAULTS.find((d) => d.id === id);
 }
 
+const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
+
 export function formatKeyCombo(key: string): string {
   return key
     .split('+')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('+');
+    .map((part) => {
+      // Show macOS-native modifier symbols
+      if (isMac) {
+        if (part === 'ctrl') return '\u2318';     // Cmd symbol (ctrl maps to Cmd on Mac)
+        if (part === 'shift') return '\u21E7';     // Shift symbol
+        if (part === 'alt') return '\u2325';       // Option symbol
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(isMac ? '' : '+');
 }

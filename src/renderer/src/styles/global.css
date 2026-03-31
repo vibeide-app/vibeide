@@ -130,6 +130,8 @@ html, body {
   font-weight: 600;
   color: var(--fg-dim);
   letter-spacing: 0.02em;
+  flex: 1;
+  text-align: center;
 }
 
 .app-titlebar-controls {
@@ -154,6 +156,11 @@ html, body {
 .app-titlebar-btn.close { background: var(--error); }
 .app-titlebar-btn.minimize { background: var(--warning); }
 .app-titlebar-btn.maximize { background: var(--success); }
+
+/* macOS: pad titlebar to clear native traffic light buttons (top-left) */
+body.platform-darwin .app-titlebar {
+  padding-left: 78px;
+}
 
 /* Screen reader only — visually hidden but accessible */
 .sr-only {

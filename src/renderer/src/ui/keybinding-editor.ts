@@ -16,6 +16,7 @@ export class KeybindingEditor {
   private recordingId: string | null = null;
   private readonly onChanged: KeybindingChangeCallback;
   private readonly boundCaptureHandler: (e: KeyboardEvent) => void;
+  private readonly isMac = navigator.platform.toUpperCase().includes('MAC');
 
   constructor(onChanged: KeybindingChangeCallback) {
     this.overrides = loadUserKeybindings();
@@ -202,10 +203,11 @@ export class KeybindingEditor {
     if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
 
     const parts: string[] = [];
-    if (e.ctrlKey) parts.push('ctrl');
+    // On macOS, treat Cmd (Meta) as Ctrl for consistent bindings
+    if (e.ctrlKey || (this.isMac && e.metaKey)) parts.push('ctrl');
     if (e.altKey) parts.push('alt');
     if (e.shiftKey) parts.push('shift');
-    if (e.metaKey) parts.push('meta');
+    if (!this.isMac && e.metaKey) parts.push('meta');
 
     let key = e.key.toLowerCase();
     if (key === ' ') key = 'space';

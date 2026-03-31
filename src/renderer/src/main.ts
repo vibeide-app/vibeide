@@ -35,6 +35,9 @@ function main(): void {
 
   applyTheme(loadSavedTheme());
 
+  // Add platform class to body for platform-specific CSS (e.g. macOS traffic lights)
+  document.body.classList.add(`platform-${window.api.platform}`);
+
   // Check if this is a pop-out window
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('popout') === 'file-viewer') {
@@ -58,26 +61,37 @@ function main(): void {
   titleText.className = 'app-titlebar-title';
   titleText.textContent = 'VibeIDE';
 
-  const titleControls = document.createElement('div');
-  titleControls.className = 'app-titlebar-controls';
-
-  const minimizeBtn = document.createElement('button');
-  minimizeBtn.className = 'app-titlebar-btn minimize';
-  minimizeBtn.addEventListener('click', () => window.api.window.minimize());
-
-  const maximizeBtn = document.createElement('button');
-  maximizeBtn.className = 'app-titlebar-btn maximize';
-  maximizeBtn.addEventListener('click', () => window.api.window.maximize());
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'app-titlebar-btn close';
-  closeBtn.addEventListener('click', () => window.api.window.close());
-
-  titleControls.appendChild(minimizeBtn);
-  titleControls.appendChild(maximizeBtn);
-  titleControls.appendChild(closeBtn);
   titleBar.appendChild(titleText);
-  titleBar.appendChild(titleControls);
+
+  // On macOS, native traffic light buttons (top-left) are provided by titleBarStyle: 'hidden'.
+  // Only render custom window controls on Linux/Windows.
+  if (window.api.platform !== 'darwin') {
+    const titleControls = document.createElement('div');
+    titleControls.className = 'app-titlebar-controls';
+    titleControls.setAttribute('role', 'toolbar');
+    titleControls.setAttribute('aria-label', 'Window controls');
+
+    const minimizeBtn = document.createElement('button');
+    minimizeBtn.className = 'app-titlebar-btn minimize';
+    minimizeBtn.setAttribute('aria-label', 'Minimize window');
+    minimizeBtn.addEventListener('click', () => window.api.window.minimize());
+
+    const maximizeBtn = document.createElement('button');
+    maximizeBtn.className = 'app-titlebar-btn maximize';
+    maximizeBtn.setAttribute('aria-label', 'Maximize window');
+    maximizeBtn.addEventListener('click', () => window.api.window.maximize());
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'app-titlebar-btn close';
+    closeBtn.setAttribute('aria-label', 'Close window');
+    closeBtn.addEventListener('click', () => window.api.window.close());
+
+    titleControls.appendChild(minimizeBtn);
+    titleControls.appendChild(maximizeBtn);
+    titleControls.appendChild(closeBtn);
+    titleBar.appendChild(titleControls);
+  }
+
   appEl.appendChild(titleBar);
 
   // App body (sidebar + workspace)
@@ -172,12 +186,16 @@ function main(): void {
   hintBar.className = 'workspace-hint-bar';
   hintBar.setAttribute('role', 'status');
   hintBar.setAttribute('aria-label', 'Keyboard shortcuts');
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  const mod = isMac ? '\u2318' : 'Ctrl';
+  const shift = isMac ? '\u21E7' : 'Shift';
+  const sep = isMac ? '' : '+';
   hintBar.innerHTML = `
-    <span class="hint-item"><kbd>Ctrl+Shift+P</kbd> Commands</span>
-    <span class="hint-item"><kbd>Ctrl+P</kbd> Open File</span>
-    <span class="hint-item"><kbd>Ctrl+Shift+D</kbd> Split</span>
-    <span class="hint-item"><kbd>Ctrl+Shift+W</kbd> Close</span>
-    <span class="hint-item"><kbd>Ctrl+B</kbd> Sidebar</span>
+    <span class="hint-item"><kbd>${mod}${sep}${shift}${sep}P</kbd> Commands</span>
+    <span class="hint-item"><kbd>${mod}${sep}P</kbd> Open File</span>
+    <span class="hint-item"><kbd>${mod}${sep}${shift}${sep}D</kbd> Split</span>
+    <span class="hint-item"><kbd>${mod}${sep}${shift}${sep}W</kbd> Close</span>
+    <span class="hint-item"><kbd>${mod}${sep}B</kbd> Sidebar</span>
     <span class="hint-item"><kbd>F3</kbd> Dictate</span>
     <span class="hint-item"><kbd>F4</kbd> Voice Cmd</span>
   `;
