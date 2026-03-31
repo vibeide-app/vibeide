@@ -40,19 +40,26 @@ Skills are installed to each agent's config directory (`~/.claude/skills/`, `~/.
 ### Linux
 
 ```bash
-# One-liner: download and install .deb (Debian/Ubuntu)
-gh release download --repo nandadevaiah/vibeide --pattern "*.deb" && sudo dpkg -i vibeide_*_amd64.deb
+# Debian/Ubuntu — download and install .deb
+curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/vibeide_0.1.0_amd64.deb
+sudo dpkg -i vibeide_0.1.0_amd64.deb
 
 # AppImage (any distro, no install needed)
-gh release download --repo nandadevaiah/vibeide --pattern "*.AppImage" && chmod +x VibeIDE-*.AppImage && ./VibeIDE-*.AppImage
+curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/VibeIDE-0.1.0-x86_64.AppImage
+chmod +x VibeIDE-0.1.0-x86_64.AppImage
+./VibeIDE-0.1.0-x86_64.AppImage
 ```
 
-Or download manually from [Releases](https://github.com/nandadevaiah/vibeide/releases).
+Or with GitHub CLI:
+
+```bash
+gh release download --repo nandadevaiah/vibeide --pattern "*.deb" && sudo dpkg -i vibeide_*_amd64.deb
+```
 
 ### macOS
 
 ```bash
-gh release download --repo nandadevaiah/vibeide --pattern "*-arm64.dmg"
+curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/VibeIDE-0.1.0-arm64.dmg
 ```
 
 Open the `.dmg` and drag VibeIDE to Applications.
@@ -66,10 +73,12 @@ xattr -cr /Applications/VibeIDE.app
 ### Windows
 
 ```powershell
-gh release download --repo nandadevaiah/vibeide --pattern "*.exe"
+curl -sLO https://github.com/nandadevaiah/vibeide/releases/latest/download/VibeIDE-0.1.0-x64.exe
 ```
 
 Run the downloaded `.exe` installer. Windows builds are signed with Azure Trusted Signing.
+
+Or with GitHub CLI: `gh release download --repo nandadevaiah/vibeide --pattern "*.exe"`
 
 Or download from [Releases](https://github.com/nandadevaiah/vibeide/releases).
 
