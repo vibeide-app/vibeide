@@ -28,6 +28,10 @@ From design review on 2026-03-30 (branch: vibeide/claude-99198f97).
 
 - [x] **Create DESIGN.md** — Document the design system: color token semantics, typography hierarchy (Space Grotesk for UI, JetBrains Mono for code), spacing scale, button variants (primary/secondary/danger), status color semantics (green=success/complete, amber=warning/needs-input, red=error, gray=idle), animation tokens, brand guidelines (dragonfly mascot, Tokyo Night default theme). Should be created AFTER font change, color fix, and toast fix land.
 
+## New Features
+
+- [x] **Auto-arrange windows on agent add** — When a user adds a new agent, automatically arrange all agent terminal windows in equal splits instead of requiring the user to manually click the auto-arrange button. The system should detect when agents are added and trigger the layout rebalancing automatically.
+
 ## Approved Design Direction
 
 Mockup: `~/.gstack/projects/nandadevaiah-vibeide/designs/core-ui-review-20260330/variant-D.png`

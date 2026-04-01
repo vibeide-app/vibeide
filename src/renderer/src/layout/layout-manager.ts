@@ -324,12 +324,7 @@ export class LayoutManager {
   equalizeAll(): void {
     if (!this.layout) return;
     this.layout = this.resetRatios(this.layout);
-    // Force render even if element was previously skipped
-    this.rootElement.replaceChildren();
-    const dom = this.renderNode(this.layout);
-    this.rootElement.appendChild(dom);
-    this.setupDividerDrag();
-    requestAnimationFrame(() => this.onFitAll());
+    this.render();
   }
 
   private resetRatios(node: LayoutNode): LayoutNode {
