@@ -52,6 +52,7 @@ export class AgentControls {
         const focusedId = this.layoutManager.getFocusedLeafId();
         if (focusedId) {
           this.layoutManager.splitPane(focusedId, direction ?? 'horizontal', info.sessionId);
+          this.layoutManager.equalizeAll();
         }
       }
     } catch (error) {
