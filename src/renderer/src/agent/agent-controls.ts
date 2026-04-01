@@ -70,6 +70,7 @@ export class AgentControls {
         const leaf = this.layoutManager.findLeafBySessionId(tracked.info.sessionId);
         if (leaf) {
           this.layoutManager.closePane(leaf.id);
+          this.layoutManager.equalizeAll();
         }
         tracked.statusBar.dispose();
         this.tracked.delete(agentId);

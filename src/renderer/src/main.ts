@@ -1260,6 +1260,7 @@ function main(): void {
     const leafId = workspace.layoutManager.getFocusedLeafId();
     if (leafId) {
       workspace.layoutManager.closePane(leafId);
+      workspace.layoutManager.equalizeAll();
     }
   }
 
