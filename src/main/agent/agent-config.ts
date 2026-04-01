@@ -15,7 +15,7 @@ const AGENT_DEFAULTS: Record<Exclude<AgentType, 'custom'>, Omit<AgentConfig, 'cw
   qwen: { type: 'qwen', command: 'qwen', args: [], label: 'Qwen Code' },
   shell: {
     type: 'shell',
-    command: process.env.SHELL || '/bin/bash',
+    command: process.platform === 'win32' ? (process.env.SHELL || 'cmd.exe') : (process.env.SHELL || '/bin/bash'),
     args: [],
     label: 'Shell',
   },
@@ -26,5 +26,15 @@ export function getDefaultAgentConfig(type: AgentType, cwd: string): AgentConfig
     throw new Error('Custom agent type requires explicit configuration');
   }
 
-  return { ...AGENT_DEFAULTS[type], cwd };
+  const config = { ...AGENT_DEFAULTS[type], cwd };
+
+  // On Windows, globally-installed npm CLIs are .cmd batch scripts.
+  // node-pty uses CreateProcessW which cannot execute .cmd files directly.
+  // Wrap via cmd.exe /c so cmd.exe resolves the command from PATH.
+  if (process.platform === 'win32' && type !== 'shell') {
+    config.args = ['/c', config.command, ...config.args];
+    config.command = 'cmd.exe';
+  }
+
+  return config;
 }

@@ -7,6 +7,10 @@ const SAFE_ENV_KEYS = new Set([
   'DISPLAY', 'WAYLAND_DISPLAY', 'DBUS_SESSION_BUS_ADDRESS',
   'NVM_DIR', 'NVM_BIN', 'NVM_INC', 'NODE_PATH',
   'CLAUDE_PLUGIN_ROOT',
+  // Windows-critical: cmd.exe, PowerShell, and most CLIs need these
+  'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'COMSPEC',
+  'SystemRoot', 'SYSTEMDRIVE', 'TEMP', 'TMP',
+  'HOMEDRIVE', 'HOMEPATH', 'USERNAME',
 ]);
 
 function buildSafeEnv(
@@ -36,22 +40,42 @@ function buildSafeEnv(
   // Ensure common tool paths are available (Electron doesn't source .bashrc/.zshrc)
   const fs = require('node:fs');
   const nodePath = require('node:path');
-  const home = process.env.HOME || '';
+  
+  const isWin = process.platform === 'win32';
+  const home = isWin
+    ? (process.env.USERPROFILE || process.env.HOME || '')
+    : (process.env.HOME || '');
 
-  // macOS: Homebrew paths (Apple Silicon + Intel)
-  const extraPaths = [
-    '/opt/homebrew/bin',       // macOS Apple Silicon Homebrew
-    '/opt/homebrew/sbin',
-    '/usr/local/bin',          // macOS Intel Homebrew + standard tools
-    '/usr/local/sbin',
-    nodePath.join(home, '.local/bin'),  // pip install --user
-    nodePath.join(home, '.cargo/bin'),  // Rust/cargo installs
-  ];
+  const extraPaths: string[] = [];
+
+  if (isWin) {
+    const appData = process.env.APPDATA || nodePath.join(home, 'AppData', 'Roaming');
+    const localAppData = process.env.LOCALAPPDATA || nodePath.join(home, 'AppData', 'Local');
+    extraPaths.push(
+      nodePath.join(appData, 'npm'),
+      nodePath.join(localAppData, 'Programs', 'Python', 'Python3*', 'Scripts'),
+      nodePath.join(home, '.cargo', 'bin'),
+      nodePath.join(localAppData, 'Microsoft', 'WinGet', 'Packages'),
+      nodePath.join(home, 'scoop', 'shims'),
+    );
+  } else {
+    // macOS: Homebrew paths (Apple Silicon + Intel) and generic unix
+    extraPaths.push(
+      '/opt/homebrew/bin',       // macOS Apple Silicon Homebrew
+      '/opt/homebrew/sbin',
+      '/usr/local/bin',          // macOS Intel Homebrew + standard tools
+      '/usr/local/sbin',
+      nodePath.join(home, '.local/bin'),  // pip install --user
+      nodePath.join(home, '.cargo/bin'),  // Rust/cargo installs
+    );
+  }
+
+  const pathSep = isWin ? ';' : ':';
 
   for (const p of extraPaths) {
     try {
-      if (fs.existsSync(p) && env.PATH && !env.PATH.includes(p)) {
-        env.PATH = `${p}:${env.PATH}`;
+      if (fs.existsSync(p) && env.PATH && !env.PATH.split(pathSep).includes(p)) {
+        env.PATH = `${p}${pathSep}${env.PATH}`;
       }
     } catch { /* skip */ }
   }

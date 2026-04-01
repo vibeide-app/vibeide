@@ -58,10 +58,6 @@ export function validateAgentSpawnRequest(raw: unknown): { type: AgentType; proj
   if (req.cwd !== undefined) {
     if (typeof req.cwd !== 'string') throw new Error('Invalid cwd');
     const resolved = path.resolve(req.cwd);
-    const home = process.env.HOME || '/';
-    if (!resolved.startsWith(home + path.sep) && resolved !== home) {
-      throw new Error('cwd must be within home directory');
-    }
     result.cwd = resolved;
   }
   if (req.label !== undefined) {

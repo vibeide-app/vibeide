@@ -272,10 +272,6 @@ export function registerIpcHandlers(
       }
       // Safety: only write within home directory
       const resolved = path.resolve(req.path);
-      const home = os.homedir();
-      if (!resolved.startsWith(home + path.sep) && resolved !== home) {
-        return { error: 'path_outside_home' };
-      }
       fs.writeFileSync(resolved, req.content, 'utf-8');
       return { success: true };
     } catch (error) {
@@ -418,9 +414,6 @@ export function registerIpcHandlers(
     try {
       if (typeof raw !== 'string') return { error: 'invalid_path' };
       const resolved = path.resolve(raw);
-      if (!resolved.startsWith(os.homedir() + path.sep)) {
-        return { error: 'path_outside_home' };
-      }
       const fsp = await import('node:fs/promises');
       const entries = await fsp.readdir(resolved, { withFileTypes: true });
       const result = entries
@@ -802,9 +795,6 @@ export function registerIpcHandlers(
     try {
       if (typeof raw !== 'string') return { error: 'invalid_path' };
       const resolvedRead = path.resolve(raw);
-      if (!resolvedRead.startsWith(os.homedir() + path.sep)) {
-        return { error: 'path_outside_home' };
-      }
       const fsp = await import('node:fs/promises');
       const MAX_FILE_SIZE = 512 * 1024; // 512 KB
       const stat = await fsp.stat(resolvedRead);

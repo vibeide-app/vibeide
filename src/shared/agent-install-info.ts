@@ -17,7 +17,9 @@ interface PlatformCommands {
 }
 
 function getPlatform(): Platform {
+  // @ts-ignore - window is not defined in node context
   if (typeof window !== 'undefined' && 'api' in window) {
+    // @ts-ignore
     return (window as { api: { platform: Platform } }).api.platform;
   }
   if (typeof process !== 'undefined') {
