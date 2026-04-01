@@ -50,10 +50,11 @@ async function loadVoiceSettings(): Promise<void> {
       if (all && typeof all === 'object' && !('error' in all)) {
         voiceSettings = {
           apiKey: (all.voiceApiKey as string) ?? '',
-          provider: (all.voiceProvider as string) ?? 'groq',
+          provider: (all.voiceProvider as string) ?? 'openai',
           postProcessMode: (all.voicePostProcessMode as string) ?? 'command',
           deviceId: (all.voiceDeviceId as string) ?? '',
         };
+        console.log(`[VoiceCapture] Settings loaded: provider=${voiceSettings.provider}`);
         settingsLoaded = true;
         return;
       }
@@ -480,7 +481,8 @@ export class VoiceCapture {
 
   // --- API key prompt ---
 
-  showSetup(): void {
+  async showSetup(): Promise<void> {
+    await this.ensureSettingsLoaded();
     this.showApiKeyPrompt();
   }
 
