@@ -380,6 +380,16 @@ export class LayoutManager {
     this.activeSessionIds.clear();
   }
 
+  reset(): void {
+    if (this.activeDragCleanup) {
+      this.activeDragCleanup();
+      this.activeDragCleanup = null;
+    }
+    this.layout = null;
+    this.focusedLeafId = null;
+    this.activeSessionIds.clear();
+  }
+
   private findLeafInTree(node: LayoutNode, sessionId: string): LeafNode | null {
     if (node.type === 'leaf') {
       return node.sessionId === sessionId ? node : null;

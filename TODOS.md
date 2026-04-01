@@ -30,7 +30,9 @@ From design review on 2026-03-30 (branch: vibeide/claude-99198f97).
 
 ## New Features
 
-- [x] **Auto-arrange windows on agent add** — When a user adds a new agent, automatically arrange all agent terminal windows in equal splits instead of requiring the user to manually click the auto-arrange button. The system should detect when agents are added and trigger the layout rebalancing automatically.
+- [x] **Auto-arrange windows on agent add/close** — When a user adds or closes an agent, automatically arrange all agent terminal windows in equal splits instead of requiring the user to manually click the auto-arrange button. The system detects when agents are added or removed and triggers layout rebalancing automatically.
+
+- [ ] **Single Preview — cross-project agent overview** — A unified view that shows all active agents across all projects in a single screen. Does not move or detach existing terminal panes — instead, creates mirrored terminal instances that share the same PTY sessions, so the user retains full context and can continue interacting from within Single Preview exactly as they would from within the project. Agents are auto-arranged in equal splits. Switching between Single Preview and a project view should be seamless with no context loss. Key requirements: (a) Aggregate active agents from all open projects. (b) Mirror terminal sessions (shared PTY, not new processes). (c) Auto-arrange layout using equalizeAll(). (d) Sidebar or top-level toggle to enter/exit Single Preview. (e) Status indicators showing which project each agent belongs to.
 
 ## Approved Design Direction
 

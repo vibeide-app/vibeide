@@ -26,6 +26,7 @@ export const KEYBINDING_DEFAULTS: readonly KeybindingDefinition[] = [
   { id: 'zoom-in', label: 'Zoom In (All)', defaultKey: 'ctrl+shift+arrowup' },
   { id: 'zoom-out', label: 'Zoom Out (All)', defaultKey: 'ctrl+shift+arrowdown' },
   { id: 'zoom-reset', label: 'Zoom Reset', defaultKey: 'ctrl+0' },
+  { id: 'toggle-single-preview', label: 'Toggle Single Preview', defaultKey: 'ctrl+shift+a' },
 ];
 
 // In-memory cache — loaded async on startup, saved async on change

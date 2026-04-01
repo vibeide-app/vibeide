@@ -421,6 +421,18 @@
   color: var(--accent);
 }
 
+.sidebar-toolbar-btn.sidebar-preview-btn:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sidebar-toolbar-btn.sidebar-preview-btn.active {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* --- Sidebar section header --- */
 .sidebar-section-header {
   font-weight: 600;
@@ -658,6 +670,18 @@
 .agent-status-bar.status-bar-complete .status-bar-status {
   color: var(--success);
   font-weight: 600;
+}
+
+.status-bar-project {
+  color: var(--fg-dim);
+  font-weight: 400;
+  font-size: var(--font-xs);
+}
+
+.status-bar-project::after {
+  content: '\00b7';
+  margin: 0 var(--space-1);
+  color: var(--fg-faint);
 }
 
 .status-bar-type {
@@ -2554,3 +2578,31 @@
 
 .restart-btn:hover { opacity: 0.85; }
 .restart-btn:active { transform: scale(0.95); }
+
+/* Single Preview */
+
+.single-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.single-preview-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.single-preview-empty-icon {
+  font-size: 48px;
+  color: var(--fg-faint);
+  opacity: 0.5;
+}
+
+.single-preview-empty-label {
+  color: var(--fg-dim);
+  font-size: var(--font-base);
+}

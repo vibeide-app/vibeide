@@ -1,6 +1,9 @@
 import { ProjectWorkspace } from './project-workspace';
+import { SinglePreview } from '../preview/single-preview';
 import type { ProjectInfo } from '../../../shared/ipc-types';
 import type { AgentType } from '../../../shared/agent-types';
+import type { PreviewAgent } from '../../../shared/preview-types';
+import { ACTIVE_STATUSES } from '../../../shared/preview-types';
 
 export type WorkspaceChangeCallback = (projectId: string | null) => void;
 
@@ -8,11 +11,40 @@ export class WorkspaceSwitcher {
   private readonly workspaceHost: HTMLElement;
   private readonly workspaces = new Map<string, ProjectWorkspace>();
   private activeProjectId: string | null = null;
+  private lastActiveProjectId: string | null = null;
   private readonly onWorkspaceChange: WorkspaceChangeCallback;
+  readonly singlePreview: SinglePreview;
+  private inSinglePreview = false;
+  private projectNames = new Map<string, string>();
 
   constructor(workspaceHost: HTMLElement, onWorkspaceChange: WorkspaceChangeCallback) {
     this.workspaceHost = workspaceHost;
     this.onWorkspaceChange = onWorkspaceChange;
+
+    this.singlePreview = new SinglePreview(
+      (sessionId, container) => {
+        // Find which workspace owns this session and reattach its terminal
+        for (const ws of this.workspaces.values()) {
+          const panel = ws.terminalManager.getTerminal(sessionId);
+          if (panel) {
+            ws.terminalManager.createTerminal(sessionId, container);
+            return;
+          }
+        }
+      },
+      () => {
+        // fitAll across all workspace terminal managers
+        for (const ws of this.workspaces.values()) {
+          ws.terminalManager.fitAll();
+        }
+      },
+      () => this.collectPreviewAgents(),
+    );
+    workspaceHost.appendChild(this.singlePreview.containerEl);
+  }
+
+  isInSinglePreview(): boolean {
+    return this.inSinglePreview;
   }
 
   getActiveProjectId(): string | null {
@@ -32,7 +64,19 @@ export class WorkspaceSwitcher {
     return Array.from(this.workspaces.values());
   }
 
+  updateProjectNames(projects: ReadonlyArray<ProjectInfo>): void {
+    this.projectNames.clear();
+    for (const p of projects) {
+      this.projectNames.set(p.id, p.name);
+    }
+  }
+
   async switchTo(project: ProjectInfo): Promise<ProjectWorkspace> {
+    // Exit single preview if active
+    if (this.inSinglePreview) {
+      this.exitSinglePreview();
+    }
+
     // Deactivate current workspace
     if (this.activeProjectId) {
       const current = this.workspaces.get(this.activeProjectId);
@@ -58,6 +102,7 @@ export class WorkspaceSwitcher {
 
     workspace.activate();
     this.activeProjectId = project.id;
+    this.lastActiveProjectId = project.id;
     this.onWorkspaceChange(project.id);
 
     // Touch project's lastActiveAt
@@ -70,6 +115,75 @@ export class WorkspaceSwitcher {
     return workspace;
   }
 
+  enterSinglePreview(): void {
+    if (this.inSinglePreview) return;
+
+    // Deactivate current workspace
+    if (this.activeProjectId) {
+      const current = this.workspaces.get(this.activeProjectId);
+      if (current) {
+        current.deactivate();
+      }
+      this.lastActiveProjectId = this.activeProjectId;
+      this.activeProjectId = null;
+    }
+
+    this.inSinglePreview = true;
+    this.singlePreview.enter();
+    this.onWorkspaceChange(null);
+  }
+
+  exitSinglePreview(): void {
+    if (!this.inSinglePreview) return;
+
+    this.inSinglePreview = false;
+
+    // Set up onExit callback so terminals are reattached to the project
+    // workspace BEFORE the preview DOM is cleared (prevents element orphaning)
+    this.singlePreview.setOnExit(() => {
+      if (this.lastActiveProjectId) {
+        const workspace = this.workspaces.get(this.lastActiveProjectId);
+        if (workspace) {
+          workspace.activate();
+          this.activeProjectId = this.lastActiveProjectId;
+          workspace.layoutManager.render();
+        }
+      }
+    });
+
+    this.singlePreview.exit();
+
+    // Reset the onExit callback
+    this.singlePreview.setOnExit(() => {});
+
+    this.onWorkspaceChange(this.activeProjectId);
+  }
+
+  toggleSinglePreview(): void {
+    if (this.inSinglePreview) {
+      this.exitSinglePreview();
+    } else {
+      this.enterSinglePreview();
+    }
+  }
+
+  private collectPreviewAgents(): ReadonlyArray<PreviewAgent> {
+    const agents: PreviewAgent[] = [];
+    for (const ws of this.workspaces.values()) {
+      const projectName = this.projectNames.get(ws.projectId) ?? ws.projectId;
+      for (const tracked of ws.getTrackedAgents().values()) {
+        if (ACTIVE_STATUSES.has(tracked.info.status)) {
+          agents.push({
+            agentInfo: tracked.info,
+            projectId: ws.projectId,
+            projectName,
+          });
+        }
+      }
+    }
+    return agents;
+  }
+
   async closeWorkspace(projectId: string): Promise<void> {
     const workspace = this.workspaces.get(projectId);
     if (!workspace) return;
@@ -77,6 +191,11 @@ export class WorkspaceSwitcher {
     await workspace.saveState();
     workspace.dispose();
     this.workspaces.delete(projectId);
+
+    // Refresh single preview if active (agents were removed)
+    if (this.inSinglePreview) {
+      this.singlePreview.refresh();
+    }
 
     if (this.activeProjectId === projectId) {
       // Auto-switch to the next open workspace, or null
@@ -100,8 +219,12 @@ export class WorkspaceSwitcher {
     for (const workspace of this.workspaces.values()) {
       if (workspace.hasAgent(agentId)) {
         workspace.handleAgentStatus(agentId, status as 'running' | 'stopped' | 'error' | 'starting');
-        return;
+        break;
       }
+    }
+    // Refresh single preview if active
+    if (this.inSinglePreview) {
+      this.singlePreview.refresh();
     }
   }
 
@@ -109,8 +232,12 @@ export class WorkspaceSwitcher {
     for (const workspace of this.workspaces.values()) {
       if (workspace.hasAgent(agentId)) {
         workspace.handleAgentExit(agentId, exitCode);
-        return;
+        break;
       }
+    }
+    // Refresh single preview if active
+    if (this.inSinglePreview) {
+      this.singlePreview.refresh();
     }
   }
 
@@ -131,5 +258,6 @@ export class WorkspaceSwitcher {
     }
     this.workspaces.clear();
     this.activeProjectId = null;
+    this.singlePreview.dispose();
   }
 }

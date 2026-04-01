@@ -28,6 +28,7 @@ export interface ProjectSidebarCallbacks {
   readonly onNotificationClick: (projectId: string, agentId: string, sessionId: string) => void;
   readonly onLaunchWorkspace?: () => void;
   readonly onEqualizePanes?: () => void;
+  readonly onToggleSinglePreview?: () => void;
 }
 
 interface ProjectEntry {
@@ -60,6 +61,7 @@ export class ProjectSidebar {
   private agentDropdownProjectId: string | null = null;
   private collapsed = false;
   private savedExpandedWidth = 0;
+  private previewBtn: HTMLElement | null = null;
 
   constructor(container: HTMLElement, callbacks: ProjectSidebarCallbacks) {
     this.container = container;
@@ -259,6 +261,12 @@ export class ProjectSidebar {
     this.updateEmptyState();
   }
 
+  setSinglePreviewActive(active: boolean): void {
+    if (this.previewBtn) {
+      this.previewBtn.classList.toggle('active', active);
+    }
+  }
+
   setActiveProject(projectId: string | null): void {
     const previousId = this.activeProjectId;
     this.activeProjectId = projectId;
@@ -428,6 +436,18 @@ export class ProjectSidebar {
       this.callbacks.onProjectAdd();
     });
 
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'sidebar-toolbar-btn sidebar-preview-btn';
+    previewBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>`;
+    previewBtn.title = 'Single Preview (Ctrl+Shift+A)';
+    previewBtn.setAttribute('aria-label', 'Toggle Single Preview — view all agents');
+    previewBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.callbacks.onToggleSinglePreview?.();
+    });
+    this.previewBtn = previewBtn;
+
+    toolbar.appendChild(previewBtn);
     toolbar.appendChild(launchBtn);
     toolbar.appendChild(equalizeBtn);
     toolbar.appendChild(addBtn);

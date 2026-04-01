@@ -378,6 +378,12 @@ function main(): void {
       const ws = workspaceSwitcher.getActiveWorkspace();
       if (ws) ws.layoutManager.equalizeAll();
     },
+    onToggleSinglePreview: () => {
+      workspaceSwitcher.toggleSinglePreview();
+      const inPreview = workspaceSwitcher.isInSinglePreview();
+      projectSidebar.setSinglePreviewActive(inPreview);
+      ariaLive.textContent = inPreview ? 'Entering Single Preview' : 'Exiting Single Preview';
+    },
     onLaunchWorkspace: () => {
       launchWorkspaceDialog.show(async (result) => {
         await workspaceSwitcher.switchTo(result.project);
@@ -649,6 +655,13 @@ function main(): void {
   });
 
   commandPalette.register({
+    id: 'toggle-single-preview',
+    label: 'Toggle Single Preview',
+    category: 'View',
+    action: () => { workspaceSwitcher.toggleSinglePreview(); const inPreview = workspaceSwitcher.isInSinglePreview(); projectSidebar.setSinglePreviewActive(inPreview); ariaLive.textContent = inPreview ? 'Entering Single Preview' : 'Exiting Single Preview'; },
+  });
+
+  commandPalette.register({
     id: 'launch-workspace',
     label: 'Launch Workspace',
     category: 'General',
@@ -784,6 +797,7 @@ function main(): void {
   voiceRouter.registerCommand({ id: 'new-qwen', aliases: ['new qwen', 'open qwen', 'start qwen', 'qwen agent', 'new when', 'open when'], action: () => spawnInActiveProject('qwen') });
   voiceRouter.registerCommand({ id: 'close-pane', aliases: ['close pane', 'close terminal', 'close this', 'close tab'], action: () => closeFocused() });
   voiceRouter.registerCommand({ id: 'equalize-panes', aliases: ['equalize panes', 'equal size', 'auto arrange', 'reset layout', 'equal panes'], action: () => { const ws = workspaceSwitcher.getActiveWorkspace(); if (ws) ws.layoutManager.equalizeAll(); } });
+  voiceRouter.registerCommand({ id: 'toggle-single-preview', aliases: ['single preview', 'preview all', 'show all agents', 'all agents', 'overview'], action: () => { workspaceSwitcher.toggleSinglePreview(); const inPreview = workspaceSwitcher.isInSinglePreview(); projectSidebar.setSinglePreviewActive(inPreview); ariaLive.textContent = inPreview ? 'Entering Single Preview' : 'Exiting Single Preview'; } });
   voiceRouter.registerCommand({ id: 'launch-workspace', aliases: ['launch workspace', 'setup workspace', 'new workspace', 'workspace setup'], action: () => { launchWorkspaceDialog.show(async (result) => { await workspaceSwitcher.switchTo(result.project); projectSidebar.setActiveProject(result.project.id); await refreshProjectList(); const preset = buildDynamicPreset(result.agents, result.layout); const workspace = workspaceSwitcher.getActiveWorkspace(); if (workspace) { const success = await workspace.applyPreset(preset); if (success) { const agents = Array.from(workspace.getTrackedAgents().values()).map((t) => t.info); projectSidebar.updateAgents(result.project.id, agents); } } }); } });
   voiceRouter.registerCommand({ id: 'toggle-sidebar', aliases: ['toggle sidebar', 'hide sidebar', 'show sidebar', 'sidebar'], action: () => projectSidebar.toggleCollapse() });
   voiceRouter.registerCommand({ id: 'command-palette', aliases: ['command palette', 'commands', 'open commands', 'show commands'], action: () => commandPalette.toggle() });
@@ -1039,6 +1053,7 @@ function main(): void {
     'zoom-in': { action: () => window.api.window.zoomIn() },
     'zoom-out': { action: () => window.api.window.zoomOut() },
     'zoom-reset': { action: () => window.api.window.zoomReset() },
+    'toggle-single-preview': { action: () => { workspaceSwitcher.toggleSinglePreview(); const inPreview = workspaceSwitcher.isInSinglePreview(); projectSidebar.setSinglePreviewActive(inPreview); ariaLive.textContent = inPreview ? 'Entering Single Preview' : 'Exiting Single Preview'; } },
   };
 
   // Keybinding manager — registers from config, re-registers on change
@@ -1285,6 +1300,7 @@ function main(): void {
     try {
       const projects = await window.api.project.list();
       projectSidebar.setProjects(projects);
+      workspaceSwitcher.updateProjectNames(projects);
     } catch (error) {
       console.error('[Main] Failed to refresh project list:', error);
     }

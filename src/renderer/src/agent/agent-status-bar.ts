@@ -13,12 +13,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export interface StatusBarCallbacks {
-  readonly onKill: () => void;
+  readonly onKill?: () => void;
   readonly onSplitH?: () => void;
   readonly onSplitV?: () => void;
   readonly onReview?: () => void;
   readonly onMerge?: () => void;
   readonly onDiscard?: () => void;
+  readonly projectName?: string;
+  readonly previewMode?: boolean;
 }
 
 export class AgentStatusBar {
@@ -40,12 +42,20 @@ export class AgentStatusBar {
       ? { onKill: callbacksOrKill }
       : callbacksOrKill;
     this.startedAt = agentInfo.startedAt;
-    this.onKill = callbacks.onKill;
+    this.onKill = callbacks.onKill ?? (() => {});
 
     this.element = document.createElement('div');
     this.element.className = 'agent-status-bar';
 
     const agentIcon = createAgentIcon(agentInfo.config.type, 14);
+
+    // Project name badge (shown in Single Preview)
+    if (callbacks.projectName) {
+      const projectBadge = document.createElement('span');
+      projectBadge.className = 'status-bar-project';
+      projectBadge.textContent = callbacks.projectName;
+      this.element.appendChild(projectBadge);
+    }
 
     const typeLabel = document.createElement('span');
     typeLabel.className = 'status-bar-type';
@@ -144,12 +154,14 @@ export class AgentStatusBar {
     this.element.appendChild(this.branchEl);
     this.element.appendChild(this.statusTextEl);
     this.element.appendChild(this.uptimeEl);
-    this.element.appendChild(this.reviewBtn);
-    this.element.appendChild(this.mergeBtn);
-    this.element.appendChild(this.discardBtn);
-    this.element.appendChild(splitH);
-    this.element.appendChild(splitV);
-    this.element.appendChild(killBtn);
+    if (!callbacks.previewMode) {
+      this.element.appendChild(this.reviewBtn);
+      this.element.appendChild(this.mergeBtn);
+      this.element.appendChild(this.discardBtn);
+      this.element.appendChild(splitH);
+      this.element.appendChild(splitV);
+      this.element.appendChild(killBtn);
+    }
 
     this.startUptimeCounter();
   }
