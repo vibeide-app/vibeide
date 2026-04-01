@@ -304,11 +304,37 @@ export function registerIpcHandlers(
       } else if (provider === 'openai') {
         url = 'https://api.openai.com/v1/audio/transcriptions';
         model = 'whisper-1';
+      } else if (provider === 'deepgram') {
+        url = 'https://api.deepgram.com/v1/listen?model=nova-2&language=en';
+        // Deepgram doesn't use standard OpenAI multipart schema for model/language
       } else {
         return { error: 'unsupported_provider_for_ipc' };
       }
 
-      // Build multipart form data manually for Node.js fetch
+      if (provider === 'deepgram') {
+        // Deepgram accepts raw audio body
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${apiKey}`,
+            'Content-Type': 'audio/webm',
+          },
+          body: audioBuffer,
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          console.error(`[IPC][voice:transcribe] ${provider} API error ${response.status}:`, errText);
+          return { error: `${provider}_api_error_${response.status}: ${errText}` };
+        }
+
+        const result = await response.json() as any;
+        const text = result.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() ?? '';
+        console.log('[IPC][voice:transcribe] Success, text length:', text.length);
+        return { text };
+      }
+
+      // Build multipart form data manually for Node.js fetch (Groq/OpenAI)
       const boundary = '----VibeIDEBoundary' + Date.now();
       const parts: Buffer[] = [];
 
@@ -321,7 +347,7 @@ export function registerIpcHandlers(
 
       // Model part
       parts.push(Buffer.from(
-        `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${model}\r\n`
+        `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${model!}\r\n`
       ));
 
       // Language part

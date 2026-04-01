@@ -354,11 +354,9 @@ export class VoiceCapture {
     const provider = this.getProvider();
 
     try {
-      if (provider === 'groq' || provider === 'openai') {
-        // Route through main process IPC to bypass CSP
+      if (provider === 'groq' || provider === 'openai' || provider === 'deepgram') {
+        // Route through main process IPC to bypass CSP and get better logging
         await this.transcribeViaIPC(audioBlob, apiKey, provider);
-      } else if (provider === 'deepgram') {
-        await this.transcribeDeepgram(audioBlob, apiKey);
       } else {
         await this.transcribeViaIPC(audioBlob, apiKey, provider);
       }
@@ -426,28 +424,6 @@ export class VoiceCapture {
 
     const result = await response.json();
     const text = result.text?.trim();
-    if (text) {
-      this.onTranscript(text);
-    }
-    this.setState('idle');
-  }
-
-  private async transcribeDeepgram(audioBlob: Blob, apiKey: string): Promise<void> {
-    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&language=en', {
-      method: 'POST',
-      headers: {
-        Authorization: `Token ${apiKey}`,
-        'Content-Type': 'audio/webm',
-      },
-      body: audioBlob,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Deepgram API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const text = result.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim();
     if (text) {
       this.onTranscript(text);
     }
