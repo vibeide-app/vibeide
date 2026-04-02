@@ -135,6 +135,10 @@ export class ProjectWorkspace {
         const check = await window.api.agent.checkInstalled(installInfo.command);
         if (!check.installed) {
           showAgentInstallDialog(type, installInfo);
+          // If the layout is empty, spawn a fallback shell so the pane isn't blank
+          if (this.layoutManager.getLayoutTree() === null) {
+            return this.spawnAgent('shell', direction);
+          }
           return null;
         }
       }
@@ -150,7 +154,12 @@ export class ProjectWorkspace {
 
       // Check for IPC error response
       if (!result || ('error' in result) || !result.config) {
-        console.error('[ProjectWorkspace] Spawn returned error:', result);
+        const errorMsg = result && 'error' in result ? (result as { error: string }).error : 'unknown';
+        console.error('[ProjectWorkspace] Spawn returned error:', errorMsg);
+        // If the layout is empty, spawn a fallback shell so the pane isn't blank
+        if (this.layoutManager.getLayoutTree() === null && type !== 'shell') {
+          return this.spawnAgent('shell', direction);
+        }
         return null;
       }
 
@@ -180,6 +189,10 @@ export class ProjectWorkspace {
       return info;
     } catch (error) {
       console.error('[ProjectWorkspace] Failed to spawn agent:', error);
+      // If the layout is empty, spawn a fallback shell so the pane isn't blank
+      if (this.layoutManager.getLayoutTree() === null && type !== 'shell') {
+        return this.spawnAgent('shell', direction);
+      }
       return null;
     }
   }

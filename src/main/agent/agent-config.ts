@@ -15,7 +15,9 @@ const AGENT_DEFAULTS: Record<Exclude<AgentType, 'custom'>, Omit<AgentConfig, 'cw
   qwen: { type: 'qwen', command: 'qwen', args: [], label: 'Qwen Code' },
   shell: {
     type: 'shell',
-    command: process.platform === 'win32' ? (process.env.SHELL || 'cmd.exe') : (process.env.SHELL || '/bin/bash'),
+    command: process.platform === 'win32'
+      ? (process.env.COMSPEC || 'cmd.exe')
+      : (process.env.SHELL || '/bin/bash'),
     args: [],
     label: 'Shell',
   },

@@ -77,9 +77,14 @@ describe('getDefaultAgentConfig', () => {
     expect(config.args).toEqual([]);
     expect(config.label).toBe('Shell');
     expect(config.cwd).toBe(testCwd);
-    // command should be process.env.SHELL or platform-specific fallback
-    const expectedFallback = isWin ? 'cmd.exe' : '/bin/bash';
-    expect([process.env.SHELL || expectedFallback]).toContain(config.command);
+    // On Windows, shell uses COMSPEC (cmd.exe); on Unix, uses SHELL or /bin/bash
+    if (isWin) {
+      const expected = process.env.COMSPEC || 'cmd.exe';
+      expect(config.command).toBe(expected);
+    } else {
+      const expected = process.env.SHELL || '/bin/bash';
+      expect(config.command).toBe(expected);
+    }
   });
 
   it('throws for custom type', () => {

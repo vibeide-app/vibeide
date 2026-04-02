@@ -89,7 +89,7 @@ function buildSafeEnv(
       if (versions.length > 0) {
         const nvmBin = nodePath.join(versionsDir, versions[0], 'bin');
         if (env.PATH && !env.PATH.includes(nvmBin)) {
-          env.PATH = `${nvmBin}:${env.PATH}`;
+          env.PATH = `${nvmBin}${pathSep}${env.PATH}`;
         }
       }
     }
