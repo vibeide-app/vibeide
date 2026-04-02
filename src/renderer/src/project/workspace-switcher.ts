@@ -246,21 +246,8 @@ export class WorkspaceSwitcher {
         }
       }
     }
-    // Sort: needs-input first, then by project name, then by agent type
-    const statusPriority: Record<string, number> = {
-      'needs-input': 0,
-      'running': 1,
-      'starting': 2,
-      'idle': 3,
-    };
-    agents.sort((a, b) => {
-      const pa = statusPriority[a.agentInfo.status] ?? 9;
-      const pb = statusPriority[b.agentInfo.status] ?? 9;
-      if (pa !== pb) return pa - pb;
-      const nameCompare = a.projectName.localeCompare(b.projectName);
-      if (nameCompare !== 0) return nameCompare;
-      return a.agentInfo.config.type.localeCompare(b.agentInfo.config.type);
-    });
+    // No sorting — agents stay in stable insertion order to prevent
+    // twitching when status flips between running/needs-input.
     return agents;
   }
 
@@ -302,10 +289,7 @@ export class WorkspaceSwitcher {
         break;
       }
     }
-    // Refresh single preview if active
-    if (this.inSinglePreview) {
-      this.singlePreview.refresh();
-    }
+    // Status changes don't add/remove agents — no preview layout refresh needed.
   }
 
   handleAgentExit(agentId: string, exitCode: number): void {
@@ -315,10 +299,7 @@ export class WorkspaceSwitcher {
         break;
       }
     }
-    // Refresh single preview if active
-    if (this.inSinglePreview) {
-      this.singlePreview.refresh();
-    }
+    // Exit updates status only — agent stays in the layout. No preview refresh needed.
   }
 
   async saveAllStates(): Promise<void> {

@@ -154,6 +154,7 @@ export class TerminalPanel {
 
       // Ctrl+Shift+V — paste with image support (saves screenshot to temp, pastes path)
       if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+        e.preventDefault();
         this.pasteImageOrText();
         return false;
       }
@@ -167,8 +168,9 @@ export class TerminalPanel {
         return true; // let xterm send \x03 (SIGINT)
       }
 
-      // Ctrl+V — text-only paste
+      // Ctrl+V — text-only paste via IPC (prevent browser paste to avoid double-paste)
       if (e.ctrlKey && !e.shiftKey && e.key === 'v') {
+        e.preventDefault();
         this.pasteFromClipboard();
         return false;
       }
