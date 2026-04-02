@@ -72,49 +72,48 @@ describe('buildBalancedTree', () => {
 });
 
 describe('buildGridTree', () => {
-  it('builds a 2x3 grid for 6 agents', () => {
+  it('builds a 2-row grid for 6 agents (3+3)', () => {
     const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
-    const tree = buildGridTree(ids, 2, 3);
-    expect(countLeaves(tree)).toBe(6);
-    expect(collectSessionIds(tree)).toEqual(ids);
-    // Root should be vertical (rows)
-    expect(tree.type).toBe('split');
-    expect((tree as SplitNode).direction).toBe('vertical');
-  });
-
-  it('builds a 3x2 grid for 6 agents', () => {
-    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
-    const tree = buildGridTree(ids, 3, 2);
+    const tree = buildGridTree(ids, 2);
     expect(countLeaves(tree)).toBe(6);
     expect(collectSessionIds(tree)).toEqual(ids);
     expect(tree.type).toBe('split');
     expect((tree as SplitNode).direction).toBe('vertical');
   });
 
-  it('handles 5 agents in a 2x3 grid (unequal rows: 3+2)', () => {
+  it('builds a 3-row grid for 6 agents (2+2+2)', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const tree = buildGridTree(ids, 3);
+    expect(countLeaves(tree)).toBe(6);
+    expect(collectSessionIds(tree)).toEqual(ids);
+    expect(tree.type).toBe('split');
+    expect((tree as SplitNode).direction).toBe('vertical');
+  });
+
+  it('handles 5 agents in 2 rows (unequal: 3+2)', () => {
     const ids = ['a', 'b', 'c', 'd', 'e'];
-    const tree = buildGridTree(ids, 2, 3);
+    const tree = buildGridTree(ids, 2);
     expect(countLeaves(tree)).toBe(5);
     expect(collectSessionIds(tree)).toEqual(ids);
   });
 
-  it('handles 7 agents in a 3x3 grid (unequal rows: 3+2+2)', () => {
+  it('handles 7 agents in 3 rows (unequal: 3+2+2)', () => {
     const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
-    const tree = buildGridTree(ids, 3, 3);
+    const tree = buildGridTree(ids, 3);
     expect(countLeaves(tree)).toBe(7);
     expect(collectSessionIds(tree)).toEqual(ids);
   });
 
-  it('builds a single-row layout (1xN)', () => {
+  it('builds a single-row layout', () => {
     const ids = ['a', 'b', 'c'];
-    const tree = buildGridTree(ids, 1, 3);
+    const tree = buildGridTree(ids, 1);
     expect(countLeaves(tree)).toBe(3);
     expect((tree as SplitNode).direction).toBe('horizontal');
   });
 
-  it('builds a single-column layout (Nx1)', () => {
+  it('builds a single-column layout (N rows)', () => {
     const ids = ['a', 'b', 'c'];
-    const tree = buildGridTree(ids, 3, 1);
+    const tree = buildGridTree(ids, 3);
     expect(countLeaves(tree)).toBe(3);
     expect((tree as SplitNode).direction).toBe('vertical');
   });

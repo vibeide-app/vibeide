@@ -28,6 +28,7 @@ export class SinglePreview {
   private currentGrid: GridLayout | null = null;
   private gridPickerEl: HTMLElement | null = null;
   private gridDropdownEl: HTMLElement | null = null;
+  private dropdownAbort: AbortController | null = null;
 
   constructor(
     createTerminal: TerminalCreateFn,
@@ -141,7 +142,10 @@ export class SinglePreview {
   private applyGrid(): void {
     const sessionIds = this.currentAgents.map((a) => a.agentInfo.sessionId);
     const grid = this.currentGrid ?? getDefaultGrid(sessionIds.length);
-    const tree = buildGridTree(sessionIds, grid.rows, grid.cols);
+    const tree = buildGridTree(sessionIds, grid.rows);
+    // restoreLayout calls render(); equalizeAll recalculates ratios and renders again.
+    // Since equalizeAll is called immediately, the first render is overwritten in
+    // the same synchronous block before the browser paints.
     this.layoutManager.restoreLayout(tree);
     this.layoutManager.equalizeAll();
   }
@@ -174,8 +178,7 @@ export class SinglePreview {
 
   private toggleGridDropdown(options: readonly GridLayout[]): void {
     if (this.gridDropdownEl) {
-      this.gridDropdownEl.remove();
-      this.gridDropdownEl = null;
+      this.closeDropdown();
       return;
     }
 
@@ -195,33 +198,38 @@ export class SinglePreview {
         this.disposeStatusBars();
         this.layoutManager.reset();
         this.applyGrid();
-        this.gridDropdownEl?.remove();
-        this.gridDropdownEl = null;
-        // Update button text
-        const btn = this.gridPickerEl?.querySelector('.preview-grid-btn');
-        if (btn) btn.textContent = `${opt.rows}\u00d7${opt.cols}`;
+        this.closeDropdown();
+        this.renderGridPicker();
       });
       this.gridDropdownEl.appendChild(item);
     }
 
     this.gridPickerEl?.appendChild(this.gridDropdownEl);
 
-    // Close on outside click
-    const closeHandler = (e: MouseEvent) => {
-      if (!this.gridPickerEl?.contains(e.target as Node)) {
-        this.gridDropdownEl?.remove();
-        this.gridDropdownEl = null;
-        document.removeEventListener('click', closeHandler);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    // Close on outside click — use AbortController for reliable cleanup
+    this.dropdownAbort = new AbortController();
+    const signal = this.dropdownAbort.signal;
+    setTimeout(() => {
+      if (signal.aborted) return;
+      document.addEventListener('click', (e: MouseEvent) => {
+        if (!this.gridPickerEl?.contains(e.target as Node)) {
+          this.closeDropdown();
+        }
+      }, { signal });
+    }, 0);
+  }
+
+  private closeDropdown(): void {
+    this.dropdownAbort?.abort();
+    this.dropdownAbort = null;
+    this.gridDropdownEl?.remove();
+    this.gridDropdownEl = null;
   }
 
   private removeGridPicker(): void {
+    this.closeDropdown();
     this.gridPickerEl?.remove();
     this.gridPickerEl = null;
-    this.gridDropdownEl?.remove();
-    this.gridDropdownEl = null;
   }
 
   private disposeStatusBars(): void {
@@ -273,13 +281,12 @@ export function getGridOptions(count: number): readonly GridLayout[] {
   if (count <= 1) return [{ rows: 1, cols: 1, label: '1\u00d71' }];
 
   const options: GridLayout[] = [];
-  // Generate all reasonable row/col combos
   for (let rows = 1; rows <= count; rows++) {
     const cols = Math.ceil(count / rows);
     // Skip if too many empty cells (more than 1 row of empties)
     if (rows * cols - count >= cols) continue;
-    // Skip extreme shapes (no 1xN or Nx1 beyond 4)
-    if (count > 4 && (rows === 1 || cols === 1)) continue;
+    // Skip extreme 1xN or Nx1 shapes beyond 3 agents
+    if (count > 3 && (rows === 1 || cols === 1)) continue;
     // Avoid duplicates
     if (!options.some((o) => o.rows === rows && o.cols === cols)) {
       options.push({ rows, cols, label: `${rows}\u00d7${cols}` });
@@ -295,7 +302,6 @@ function isValidGrid(grid: GridLayout, count: number): boolean {
 export function buildGridTree(
   sessionIds: readonly string[],
   rows: number,
-  cols: number,
 ): LayoutNode {
   if (sessionIds.length === 0) {
     throw new Error('Cannot build tree from empty session list');
@@ -335,11 +341,19 @@ function combineNodes(nodes: LayoutNode[], direction: 'horizontal' | 'vertical')
   if (nodes.length === 2) {
     return makeSplit(direction, nodes[0], nodes[1], 0.5);
   }
-  // For 3+ nodes, split at midpoint to keep balanced
+  // For 3+ nodes, split at midpoint with ratio based on leaf counts
   const mid = Math.ceil(nodes.length / 2);
   const left = combineNodes(nodes.slice(0, mid), direction);
   const right = combineNodes(nodes.slice(mid), direction);
-  return makeSplit(direction, left, right, mid / nodes.length);
+  const leftLeaves = countLeaves(left);
+  const rightLeaves = countLeaves(right);
+  const ratio = leftLeaves / (leftLeaves + rightLeaves);
+  return makeSplit(direction, left, right, ratio);
+}
+
+function countLeaves(node: LayoutNode): number {
+  if (node.type === 'leaf') return 1;
+  return countLeaves(node.children[0]) + countLeaves(node.children[1]);
 }
 
 function makeLeaf(sessionId: string): LeafNode {
@@ -364,5 +378,5 @@ function makeSplit(
 // Keep for backwards compatibility with tests
 export function buildBalancedTree(sessionIds: readonly string[]): LayoutNode {
   const grid = getDefaultGrid(sessionIds.length);
-  return buildGridTree(sessionIds, grid.rows, grid.cols);
+  return buildGridTree(sessionIds, grid.rows);
 }
