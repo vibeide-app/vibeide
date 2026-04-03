@@ -63,4 +63,7 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   shortcutName: VibeIDE
-publish: null
+publish:
+  provider: github
+  owner: vibeide-app
+  repo: vibeide

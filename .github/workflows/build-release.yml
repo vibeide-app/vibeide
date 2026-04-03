@@ -32,7 +32,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx electron-vite build
-      - run: npx electron-builder --linux
+      - run: npx electron-builder --linux -p never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
@@ -41,6 +41,7 @@ jobs:
           path: |
             dist/*.deb
             dist/*.AppImage
+            dist/latest-linux.yml
           retention-days: 5
 
   build-macos:
@@ -85,7 +86,7 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
       # Build, sign, and notarize
-      - run: npx electron-builder --mac
+      - run: npx electron-builder --mac -p never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -104,6 +105,7 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
+            dist/latest-mac.yml
           retention-days: 5
 
   build-windows:
@@ -119,7 +121,7 @@ jobs:
       - run: python3 -m pip install setuptools
       - run: npm ci
       - run: npx electron-vite build
-      - run: npx electron-builder --win
+      - run: npx electron-builder --win -p never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_HTTP_TIMEOUT: "300000"
@@ -135,6 +137,7 @@ jobs:
           name: windows-builds
           path: |
             dist/*.exe
+            dist/latest.yml
           retention-days: 5
 
   release:
@@ -165,8 +168,11 @@ jobs:
           files: |
             artifacts/linux/*.deb
             artifacts/linux/*.AppImage
+            artifacts/linux/latest-linux.yml
             artifacts/macos/*.dmg
             artifacts/macos/*.zip
+            artifacts/macos/latest-mac.yml
             artifacts/windows/*.exe
+            artifacts/windows/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

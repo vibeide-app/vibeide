@@ -74,6 +74,10 @@ export const IPC_CHANNELS = {
   WINDOW_ZOOM_IN: 'window:zoom-in',
   WINDOW_ZOOM_OUT: 'window:zoom-out',
   WINDOW_ZOOM_RESET: 'window:zoom-reset',
+  UPDATE_CHECK: 'update:check',
+  UPDATE_DOWNLOAD: 'update:download',
+  UPDATE_INSTALL: 'update:install',
+  UPDATE_STATUS: 'update:status',
 } as const;
 
 export const FRAME_COALESCE_MS = 16;
