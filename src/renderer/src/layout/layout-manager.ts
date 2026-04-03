@@ -14,6 +14,7 @@ export class LayoutManager {
   private readonly activeSessionIds = new Set<string>();
   private resizeObserver: ResizeObserver;
   private activeDragCleanup: (() => void) | null = null;
+  private pendingFitRaf: number | null = null;
 
   constructor(
     rootElement: HTMLElement,
@@ -129,9 +130,7 @@ export class LayoutManager {
     this.rootElement.appendChild(dom);
     this.setupDividerDrag();
 
-    requestAnimationFrame(() => {
-      this.onFitAll();
-    });
+    this.scheduleFitAll();
   }
 
   private renderNode(node: LayoutNode): HTMLElement {
@@ -329,7 +328,25 @@ export class LayoutManager {
     const dom = this.renderNode(this.layout);
     this.rootElement.appendChild(dom);
     this.setupDividerDrag();
-    requestAnimationFrame(() => this.onFitAll());
+    this.scheduleFitAll();
+  }
+
+  /** Double-rAF ensures the browser has fully reflowed before we measure for terminal fitting. */
+  private scheduleFitAll(): void {
+    this.cancelPendingFit();
+    requestAnimationFrame(() => {
+      this.pendingFitRaf = requestAnimationFrame(() => {
+        this.pendingFitRaf = null;
+        this.onFitAll();
+      });
+    });
+  }
+
+  private cancelPendingFit(): void {
+    if (this.pendingFitRaf !== null) {
+      cancelAnimationFrame(this.pendingFitRaf);
+      this.pendingFitRaf = null;
+    }
   }
 
   private resetRatios(node: LayoutNode): LayoutNode {
@@ -374,6 +391,7 @@ export class LayoutManager {
   }
 
   dispose(): void {
+    this.cancelPendingFit();
     this.resizeObserver.disconnect();
     this.rootElement.replaceChildren();
     if (this.activeDragCleanup) {
