@@ -8,6 +8,7 @@ import { DEFAULT_SCROLLBACK } from '../../../shared/constants';
 import { showTerminalContextMenu } from './terminal-context-menu';
 import { getTheme, loadSavedTheme } from './terminal-theme';
 import { TerminalSearch } from './terminal-search';
+import { toastManager } from '../ui/toast-manager';
 
 function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -153,7 +154,8 @@ export class TerminalPanel {
       }
 
       // Ctrl+Shift+V — paste with image support (saves screenshot to temp, pastes path)
-      if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+      // Accept both 'V' and 'v' — some Linux keyboard layouts produce lowercase with Ctrl held
+      if (e.ctrlKey && e.shiftKey && (e.key === 'V' || e.key === 'v')) {
         e.preventDefault();
         this.pasteImageOrText();
         return false;
@@ -287,6 +289,11 @@ export class TerminalPanel {
     }).catch(() => { /* clipboard read failed */ });
   }
 
+  /** Public entry point for Ctrl+Shift+V paste — called by both xterm key handler and window-level keybinding fallback. */
+  triggerImagePaste(): void {
+    this.pasteImageOrText();
+  }
+
   private pasteImageOrText(): void {
     if (!this.connected || this.pastePending) return;
     this.pastePending = true;
@@ -294,11 +301,31 @@ export class TerminalPanel {
     window.api.clipboard.readImage().then((imagePath) => {
       if (imagePath) {
         window.api.pty.write({ sessionId: this._sessionId, data: imagePath }).catch(() => {});
+        toastManager.showGeneric({
+          title: 'Screenshot pasted',
+          message: imagePath,
+        });
       } else {
-        this.pasteFromClipboard();
+        // No image found — try text clipboard
+        window.api.clipboard.read().then((text) => {
+          if (text) {
+            window.api.pty.write({ sessionId: this._sessionId, data: text }).catch(() => {});
+          } else {
+            // Nothing in clipboard at all — tell the user rather than silently failing
+            toastManager.showGeneric({
+              title: 'No screenshot found',
+              message: 'Take a screenshot first, then press Ctrl+Shift+V to paste the file path.',
+            });
+          }
+        }).catch(() => {
+          toastManager.showGeneric({
+            title: 'Clipboard read failed',
+            message: 'Could not read clipboard content.',
+          });
+        });
       }
     }).catch(() => {
-      // Image read failed, fall back to text paste
+      // Image read IPC failed — fall back to text paste
       this.pasteFromClipboard();
     }).finally(() => {
       this.pastePending = false;

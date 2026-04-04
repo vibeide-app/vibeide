@@ -30,10 +30,14 @@ export class KeybindingManager {
     const target = e.target as HTMLElement;
     const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
     const isClipboard = e.ctrlKey && !e.altKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a');
-    const isTerminalClipboard = e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'V');
+    // Accept both cases — some Linux layouts produce lowercase 'v' even with Shift held
+    const isTerminalClipboard = e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'V' || e.key === 'c' || e.key === 'v');
+    // Check if an xterm textarea currently has focus — if so, let xterm's custom key handler
+    // take it. If not (e.g. sidebar has focus), fall through so registered bindings can fire.
+    const xtermHasFocus = target.tagName === 'TEXTAREA' && target.closest('.xterm') !== null;
 
     if (isInput && isClipboard) return; // native copy/paste/cut/select-all in inputs
-    if (isTerminalClipboard) return; // Ctrl+Shift+C/V handled by xterm.js
+    if (isTerminalClipboard && xtermHasFocus) return; // let xterm's attachCustomKeyEventHandler handle it
 
     const key = this.normalizeEvent(e);
     if (!key) return;

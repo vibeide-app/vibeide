@@ -250,6 +250,8 @@ earlyIpcMain.handle('window:popout-editor', async (_event: unknown, raw: unknown
 // Enable speech recognition on Linux
 app.commandLine.appendSwitch('enable-speech-dispatcher');
 app.commandLine.appendSwitch('enable-features', 'WebSpeechAPI');
+// Disable SUID sandbox for environments where chrome-sandbox is not setuid root
+app.commandLine.appendSwitch('no-sandbox');
 
 app.whenReady().then(() => {
   // Set CSP via response headers (more authoritative than <meta> tag)

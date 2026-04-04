@@ -1032,8 +1032,8 @@ function main(): void {
   voiceRouter.registerCommand({ id: 'notification-prefs', aliases: ['notification settings', 'notification preferences', 'sound settings'], action: () => notificationPrefs.toggle() });
 
   // Theme commands
-  const themeNames = ['tokyo night', 'tokyo night light', 'solarized dark', 'dracula', 'nord', 'gruvbox dark', 'one dark', 'catppuccin mocha', 'monokai', 'brutalist', 'brutalist light'];
-  const themeIds = ['tokyoNight', 'tokyoNightLight', 'solarizedDark', 'dracula', 'nord', 'gruvboxDark', 'oneDark', 'catppuccinMocha', 'monokai', 'brutalist', 'brutalistLight'];
+  const themeNames = ['tokyo night', 'tokyo night light', 'solarized dark', 'dracula', 'nord', 'gruvbox dark', 'one dark', 'catppuccin mocha', 'monokai', 'brutalist', 'brutalist light', 'caffeine dark', 'caffeine light'];
+  const themeIds = ['tokyoNight', 'tokyoNightLight', 'solarizedDark', 'dracula', 'nord', 'gruvboxDark', 'oneDark', 'catppuccinMocha', 'monokai', 'brutalist', 'brutalistLight', 'caffeineDark', 'caffeineLight'];
   for (let i = 0; i < themeNames.length; i++) {
     const id = themeIds[i];
     voiceRouter.registerCommand({ id: `theme-${id}`, aliases: [`theme ${themeNames[i]}`, themeNames[i], `switch to ${themeNames[i]}`], action: () => switchTheme(id) });
@@ -1180,6 +1180,8 @@ function main(): void {
     { id: 'githubLight', label: 'GitHub Light' },
     { id: 'brutalist', label: 'Brutalist' },
     { id: 'brutalistLight', label: 'Brutalist Light' },
+    { id: 'caffeineDark', label: 'Caffeine Dark' },
+    { id: 'caffeineLight', label: 'Caffeine Light' },
   ];
   for (const theme of themeEntries) {
     commandPalette.register({
@@ -1332,6 +1334,20 @@ function main(): void {
   // Load saved keybindings from file, then register
   loadUserKeybindingsAsync().then(() => {
     registerAllKeybindings();
+    // Ctrl+Shift+V fallback — fires only when xterm does NOT have focus (e.g. sidebar is active).
+    // When xterm has focus, keybindings.ts lets the event through to xterm's custom key handler instead.
+    keybindings.register('ctrl+shift+v', () => {
+      const sessionId = workspaceSwitcher.getFocusedSessionId();
+      if (!sessionId) return;
+      // Search all workspace terminal managers for the focused session
+      for (const ws of workspaceSwitcher.getAllWorkspaces()) {
+        const panel = ws.terminalManager.getTerminal(sessionId);
+        if (panel) {
+          panel.triggerImagePaste();
+          return;
+        }
+      }
+    });
   });
 
   // Keybinding editor

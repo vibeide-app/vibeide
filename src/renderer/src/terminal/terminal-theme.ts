@@ -535,6 +535,99 @@ const catppuccinLatte: AppTheme = {
   },
 };
 
+// ── Caffeine (tweakcn) ─────────────────────────────────────────────────────
+// Dark: espresso charcoal bg with warm golden/amber accent
+// oklch(0.1776 0 0) → #2c2c2c  |  oklch(0.9247 0.0524 66.17) → #e8d5a3
+const caffeineDark: AppTheme = {
+  terminal: {
+    background: '#2c2c2c',
+    foreground: '#f1f1f1',
+    cursor: '#e8d5a3',
+    cursorAccent: '#2c2c2c',
+    selectionBackground: '#504536',
+    selectionForeground: '#f1f1f1',
+    black: '#1a1a1a',
+    red: '#c0604a',
+    green: '#6a9e5c',
+    yellow: '#c8a86a',
+    blue: '#7a9abf',
+    magenta: '#b08090',
+    cyan: '#6a9ea8',
+    white: '#c2c2c2',
+    brightBlack: '#525252',
+    brightRed: '#d4705e',
+    brightGreen: '#7ab568',
+    brightYellow: '#e8c880',
+    brightBlue: '#8aacd2',
+    brightMagenta: '#c498ac',
+    brightCyan: '#7ab0bc',
+    brightWhite: '#f1f1f1',
+  },
+  chrome: {
+    '--bg': '#2c2c2c',
+    '--bg-deep': '#1a1a1a',
+    '--fg': '#f1f1f1',
+    '--fg-dim': '#c2c2c2',
+    '--fg-faint': '#737373',
+    '--border': '#3a3c35',
+    '--accent': '#e8d5a3',
+    '--surface': '#2c2c2c',
+    '--surface-hover': '#404040',
+    '--error': '#c0604a',
+    '--success': '#6a9e5c',
+    '--warning': '#c8a86a',
+    '--scrollbar-track': '#2c2c2c',
+    '--scrollbar-thumb': '#404040',
+    '--scrollbar-thumb-hover': '#525252',
+  },
+};
+
+// Light: parchment-white bg with warm coffee-brown accent
+// oklch(0.9821 0 0) → #f9f9f9  |  oklch(0.4341 0.0392 41.99) → #6b4c31
+const caffeineLight: AppTheme = {
+  terminal: {
+    background: '#f9f9f9',
+    foreground: '#3d3d3d',
+    cursor: '#6b4c31',
+    cursorAccent: '#f9f9f9',
+    selectionBackground: '#eedf9e',
+    selectionForeground: '#3d3d3d',
+    black: '#3d3d3d',
+    red: '#a04030',
+    green: '#3d6e30',
+    yellow: '#8a6620',
+    blue: '#355a8a',
+    magenta: '#7a3060',
+    cyan: '#206070',
+    white: '#7c7c7c',
+    brightBlack: '#7c7c7c',
+    brightRed: '#c04a38',
+    brightGreen: '#507c42',
+    brightYellow: '#9e7828',
+    brightBlue: '#4068a0',
+    brightMagenta: '#8e4070',
+    brightCyan: '#2e7080',
+    brightWhite: '#3d3d3d',
+  },
+  chrome: {
+    '--bg': '#f9f9f9',
+    '--bg-deep': '#f0ede8',
+    '--fg': '#3d3d3d',
+    '--fg-dim': '#7c7c7c',
+    '--fg-faint': '#aaaaaa',
+    '--border': '#e0e0e0',
+    '--accent': '#6b4c31',
+    '--surface': '#f9f9f9',
+    '--surface-hover': '#f2f2f2',
+    '--error': '#a04030',
+    '--success': '#3d6e30',
+    '--warning': '#8a6620',
+    '--scrollbar-track': '#f9f9f9',
+    '--scrollbar-thumb': '#e0e0e0',
+    '--scrollbar-thumb-hover': '#aaaaaa',
+  },
+};
+
 const brutalistLight: AppTheme = {
   terminal: {
     background: '#e2e2e2',
@@ -638,6 +731,8 @@ export const themes: Readonly<Record<string, AppTheme>> = {
   githubLight,
   brutalist,
   brutalistLight,
+  caffeineDark,
+  caffeineLight,
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
